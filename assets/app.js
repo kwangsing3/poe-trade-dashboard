@@ -6,11 +6,57 @@ const CX_URL     = `${API_BASE}/currency-exchange`;
 const STORE_KEY  = 'poe_cx_creds';
 const TOKEN_KEY  = 'poe_cx_token';
 const MOCK_URL   = 'data/mock-currency-exchange.json';
+const STATIC_URL = 'poe_static.json';
+const POE_CDN    = 'https://www.pathofexile.com';
 
-let isDemoMode = false;
-let currentLeague = 'Mirage'; // updated dynamically on load
+let isDemoMode    = false;
+let currentLeague = 'Mirage';
+let activeTab     = 'Currency';
+let staticData    = null;   // poe_static.json result array
+let allMarkets    = [];
 
-// ── 繁體中文通貨名稱對照表 ────────────────────────────────────────────────────
+// ── Local images we downloaded ────────────────────────────────────────────────
+const LOCAL_IMGS = new Set([
+  'chaos','divine','exalted','mirror','annul','ancient-orb','vaal','regal',
+  'gcp','alch','fusing','alt','chrome','jewellers','chance','scour','regret',
+  'blessed','transmute','aug','chisel','wisdom','portal','whetstone','scrap',
+  'bauble','eternal','engineers',
+]);
+
+function imgSrc(entry) {
+  if (!entry) return '';
+  if (LOCAL_IMGS.has(entry.id)) return `public/res/img/${entry.id}.png`;
+  if (entry.image) return POE_CDN + entry.image;
+  return '';
+}
+
+// ── Tab label map ─────────────────────────────────────────────────────────────
+const TAB_ZH = {
+  Currency:       '通貨',
+  Fragments:      '殘片 & 地圖',
+  DjinnCoins:     '精靈幣',
+  Keepers:        '腐蝕通貨',
+  AllflameEmbers: '燃焰餘燼',
+  Runegrafts:     '符文嫁接',
+  Ancestor:       '刺青 & 預兆',
+  Sanctum:        '禁地',
+  Heist:          '搶劫',
+  Expedition:     '遠征',
+  DeliriumOrbs:   '幻象石',
+  Catalysts:      '催化劑',
+  Oils:           '油品',
+  Incubators:     '孵化器',
+  Delve:          '深淵',
+  Essences:       '精華',
+  Beasts:         '野獸',
+  Cards:          '分裂卡',
+  MapKey:         '地圖',
+  MapsSpecial:    '特殊地圖',
+  MapsUnique:     '傳奇地圖',
+  Legacy:         '傳承',
+};
+
+// ── Currency ZH names ─────────────────────────────────────────────────────────
 const CURRENCY_ZH = {
   'chaos':                '混沌石',
   'divine':               '神聖石',
@@ -50,198 +96,177 @@ const CURRENCY_ZH = {
   'alchemy-shard':        '點金石碎片',
   'alteration-shard':     '改造石碎片',
   'transmutation-shard':  '蛻變石碎片',
+  'annulment-shard':      '廢除石碎片',
 };
 
 function currencyName(id) {
   return CURRENCY_ZH[id] || id;
 }
 
-let allMarkets   = [];
-let refreshTimer = null;
-let countdownTimer = null;
-let nextRefreshAt  = null;
+// ── Currency sub-category grouping ────────────────────────────────────────────
+const CURRENCY_GROUPS = [
+  { id: 'high',  label: '高價通貨', currencies: ['exalted','mirror','annul','ancient-orb','eternal'] },
+  { id: 'craft', label: '製作通貨', currencies: ['vaal','regal','gcp','alch','fusing','alt','chrome','jewellers','chance','scour','regret','blessed','transmute','aug','chisel','bauble'] },
+  { id: 'misc',  label: '消耗品',   currencies: ['wisdom','portal','whetstone','scrap','engineers'] },
+];
 
-// ── Credentials (localStorage) ───────────────────────────────────────────────
-
+// ── Credentials ───────────────────────────────────────────────────────────────
 function getCreds() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || null; }
-  catch { return null; }
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || null; } catch { return null; }
 }
-
-function saveCreds(clientId, clientSecret) {
-  localStorage.setItem(STORE_KEY, JSON.stringify({ clientId, clientSecret }));
+function saveCreds(id, secret) {
+  localStorage.setItem(STORE_KEY, JSON.stringify({ clientId: id, clientSecret: secret }));
 }
-
 function clearCredsAndToken() {
   localStorage.removeItem(STORE_KEY);
   localStorage.removeItem(TOKEN_KEY);
 }
 
-// ── Current league (no auth needed) ──────────────────────────────────────────
-
+// ── League detection ──────────────────────────────────────────────────────────
 async function fetchCurrentLeague() {
   try {
     const res = await fetch(`${API_BASE}/leagues?type=main&realm=pc&limit=20`);
     if (!res.ok) return;
     const json = await res.json();
     const leagues = Array.isArray(json) ? json : (json.result || json.leagues || []);
-    // The current seasonal league has category.current === true and is not a permanent league
     const PERMANENT = new Set(['Standard','Hardcore','Solo Self-Found','Hardcore Solo Self-Found',
       'Ruthless','Hardcore Ruthless','SSF Ruthless','Hardcore SSF Ruthless']);
-    const seasonal = leagues.find(l => {
-      const cat = l.category || {};
-      return cat.current === true && !PERMANENT.has(l.id);
-    });
+    const seasonal = leagues.find(l => (l.category?.current === true) && !PERMANENT.has(l.id));
     if (seasonal) {
       currentLeague = seasonal.id;
       document.querySelector('.realm-badge').textContent = `PC · PoE1 · ${currentLeague}`;
     }
-  } catch {
-    // silently keep the default
+  } catch { /* keep default */ }
+}
+
+// ── Static data ───────────────────────────────────────────────────────────────
+async function loadStaticData() {
+  try {
+    const res = await fetch(STATIC_URL);
+    if (!res.ok) return;
+    const json = await res.json();
+    staticData = (json.result || []).filter(cat => cat.entries?.length > 0 && TAB_ZH[cat.id]);
+  } catch (e) {
+    console.warn('Could not load poe_static.json:', e);
   }
 }
 
-// ── OAuth token (cached in localStorage, no expiry per POE docs) ─────────────
-
+// ── OAuth token ───────────────────────────────────────────────────────────────
 async function getToken(force = false) {
   if (!force) {
     const cached = localStorage.getItem(TOKEN_KEY);
     if (cached) return cached;
   }
-
   const creds = getCreds();
   if (!creds) throw new Error('未設定 API 憑證');
-
   const body = new URLSearchParams({
-    client_id:     creds.clientId,
-    client_secret: creds.clientSecret,
-    grant_type:    'client_credentials',
-    scope:         'service:cxapi',
+    client_id: creds.clientId, client_secret: creds.clientSecret,
+    grant_type: 'client_credentials', scope: 'service:cxapi',
   });
-
-  const res = await fetch(TOKEN_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
-
+  const res  = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
   const json = await res.json();
-
-  if (!res.ok || !json.access_token) {
-    const msg = json.error_description || json.error || `HTTP ${res.status}`;
-    throw new Error(`取得 Token 失敗：${msg}`);
-  }
-
+  if (!res.ok || !json.access_token) throw new Error(`取得 Token 失敗：${json.error_description || json.error || `HTTP ${res.status}`}`);
   localStorage.setItem(TOKEN_KEY, json.access_token);
   return json.access_token;
 }
 
-// ── Data fetching ─────────────────────────────────────────────────────────────
-
+// ── Exchange data fetch ───────────────────────────────────────────────────────
 async function fetchCurrencyExchange(token) {
-  const res = await fetch(CX_URL, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'User-Agent': 'poe-trade-dashboard/1.0',
-    },
-  });
-
+  const res = await fetch(CX_URL, { headers: { 'Authorization': `Bearer ${token}`, 'User-Agent': 'poe-trade-dashboard/1.0' } });
   if (res.status === 401) {
-    // Token revoked — clear cache and retry once with a fresh token
     localStorage.removeItem(TOKEN_KEY);
-    const newToken = await getToken(true);
-    return fetchCurrencyExchange(newToken);
+    return fetchCurrencyExchange(await getToken(true));
   }
-
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`API 回傳 HTTP ${res.status}${text ? '：' + text.slice(0, 120) : ''}`);
   }
-
   return res.json();
 }
 
 // ── Main load ─────────────────────────────────────────────────────────────────
-
 async function loadData(manual = false) {
-  const btn = document.getElementById('refresh-btn');
+  const btn       = document.getElementById('refresh-btn');
   const updatedEl = document.getElementById('last-updated');
-
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = '載入中...';
   updatedEl.textContent = '資料載入中...';
 
   try {
     let json;
-
     if (isDemoMode || !getCreds()) {
-      // Demo mode: load local mock data
       isDemoMode = true;
-      const res = await fetch(manual ? `${MOCK_URL}?t=${Date.now()}` : MOCK_URL);
+      const res  = await fetch(manual ? `${MOCK_URL}?t=${Date.now()}` : MOCK_URL);
       if (!res.ok) throw new Error(`無法載入 mock 資料 (HTTP ${res.status})`);
       json = await res.json();
     } else {
-      const token = await getToken(manual);
-      json = await fetchCurrencyExchange(token);
+      json = await fetchCurrencyExchange(await getToken(manual));
     }
 
     allMarkets = (Array.isArray(json.markets) ? json.markets : [])
       .filter(m => m.league === currentLeague);
 
-    render();
+    renderTabs();
+    renderTabContent();
     renderStats();
 
-    const now = new Date();
     const prefix = isDemoMode ? '[Demo] 上次更新：' : '上次更新：';
-    updatedEl.textContent = prefix + now.toLocaleTimeString('zh-TW');
+    updatedEl.textContent = prefix + new Date().toLocaleTimeString('zh-TW');
 
   } catch (err) {
-    document.getElementById('categories-section').innerHTML =
-      `<p class="error-msg">⚠ ${escHtml(err.message)}</p>`;
+    document.getElementById('tab-content').innerHTML = `<p class="error-msg">⚠ ${escHtml(err.message)}</p>`;
     updatedEl.textContent = '載入失敗';
     console.error(err);
   } finally {
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = '重新整理';
   }
-
   scheduleAutoRefresh();
 }
 
-// ── Category definitions ──────────────────────────────────────────────────────
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function renderTabs() {
+  const nav  = document.getElementById('tab-nav');
+  if (!staticData) { nav.innerHTML = ''; return; }
 
-const CATEGORIES = [
-  {
-    id: 'high',
-    label: '高價通貨',
-    currencies: ['exalted', 'mirror', 'annul', 'ancient-orb', 'eternal'],
-  },
-  {
-    id: 'craft',
-    label: '製作通貨',
-    currencies: ['vaal', 'regal', 'gcp', 'alch', 'fusing', 'alt', 'chrome',
-                 'jewellers', 'chance', 'scour', 'regret', 'blessed',
-                 'transmute', 'aug', 'chisel', 'bauble'],
-  },
-  {
-    id: 'misc',
-    label: '消耗品',
-    currencies: ['wisdom', 'portal', 'whetstone', 'scrap', 'engineers'],
-  },
-];
-
-// ── Rendering ─────────────────────────────────────────────────────────────────
-
-function render() {
-  renderHero();
-  renderCategories();
+  nav.innerHTML = staticData.map(cat => {
+    const label = TAB_ZH[cat.id] || cat.label;
+    const active = cat.id === activeTab ? ' active' : '';
+    return `<button class="tab-btn${active}" onclick="switchTab('${cat.id}')" role="tab">${escHtml(label)}<span class="tab-count-badge">${cat.entries.length}</span></button>`;
+  }).join('');
 }
 
+function switchTab(tabId) {
+  activeTab = tabId;
+  // Update active class
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`.tab-btn[onclick="switchTab('${tabId}')"]`)?.classList.add('active');
+  // Clear search
+  document.getElementById('pair-search').value = '';
+  renderTabContent();
+}
+
+// ── Tab content ───────────────────────────────────────────────────────────────
+function renderTabContent() {
+  const heroEl    = document.getElementById('hero-section');
+  const contentEl = document.getElementById('tab-content');
+
+  if (activeTab === 'Currency') {
+    heroEl.style.display = '';
+    renderHero();
+    renderCurrencyTab(contentEl);
+  } else {
+    heroEl.style.display = 'none';
+    heroEl.innerHTML     = '';
+    renderGenericTab(contentEl);
+  }
+}
+
+// ── Currency tab ──────────────────────────────────────────────────────────────
 function renderHero() {
   const heroEl = document.getElementById('hero-section');
-  const buy  = allMarkets.find(m => m.market_id === 'chaos|divine');  // chaos → divine
-  const sell = allMarkets.find(m => m.market_id === 'divine|chaos');  // divine → chaos
-
+  const buy    = allMarkets.find(m => m.market_id === 'chaos|divine');
+  const sell   = allMarkets.find(m => m.market_id === 'divine|chaos');
   if (!buy && !sell) { heroEl.innerHTML = ''; return; }
 
   const buyMin  = buy  ? getVal(buy.lowest_ratio,  'chaos') : null;
@@ -267,59 +292,61 @@ function renderHero() {
     </div>`;
 }
 
-function renderCategories() {
-  const search = (document.getElementById('pair-search')?.value ?? '').toLowerCase().trim();
-  const catEl  = document.getElementById('categories-section');
+function renderCurrencyTab(el) {
+  const search   = (document.getElementById('pair-search')?.value ?? '').toLowerCase().trim();
+  const catEntry = staticData?.find(c => c.id === 'Currency');
   let html = '';
 
-  for (const cat of CATEGORIES) {
-    const cards = cat.currencies
+  // Known groups with exchange data
+  for (const grp of CURRENCY_GROUPS) {
+    const cards = grp.currencies
       .filter(c => !search || c.includes(search) || currencyName(c).includes(search))
-      .map(c => renderCurrencyCard(c))
+      .map(c => renderCurrencyCard(c, catEntry))
       .filter(Boolean);
-
-    if (cards.length === 0) continue;
-
-    html += `
-      <section class="category-section">
-        <h2 class="category-title">${cat.label}</h2>
-        <div class="card-grid">${cards.join('')}</div>
-      </section>`;
+    if (!cards.length) continue;
+    html += `<section class="category-section"><h2 class="category-title">${grp.label}</h2><div class="card-grid">${cards.join('')}</div></section>`;
   }
 
-  catEl.innerHTML = html || '<p class="empty-msg">沒有符合條件的資料</p>';
+  // Other currencies from poe_static.json not in our groups
+  const knownIds = new Set(CURRENCY_GROUPS.flatMap(g => g.currencies).concat(['chaos','divine']));
+  if (catEntry) {
+    const others = catEntry.entries.filter(e => {
+      if (knownIds.has(e.id)) return false;
+      if (search && !e.id.includes(search) && !e.text.toLowerCase().includes(search) && !(CURRENCY_ZH[e.id]||'').includes(search)) return false;
+      return true;
+    });
+    if (others.length) {
+      const cards = others.map(e => renderGenericCard(e));
+      html += `<section class="category-section"><h2 class="category-title">其他通貨</h2><div class="card-grid">${cards.join('')}</div></section>`;
+    }
+  }
+
+  const count = (html.match(/currency-card/g) || []).length;
+  document.getElementById('tab-count').textContent = `${count} 個品項`;
+  el.innerHTML = html || '<p class="empty-msg">沒有符合條件的資料</p>';
 }
 
-function renderCurrencyCard(currency) {
+function renderCurrencyCard(currency, catEntry) {
   const price = getChaosPrice(currency);
   if (!price) return null;
 
-  const vol  = getCurrencyVolume(currency);
-  const name = currencyName(currency);
+  const entry = catEntry?.entries.find(e => e.id === currency);
+  const src   = entry ? imgSrc(entry) : `public/res/img/${currency}.png`;
+  const name  = currencyName(currency);
+  const vol   = getCurrencyVolume(currency);
 
   let priceHtml;
   if (price.type === 'per-unit') {
-    const range = price.min === price.max
-      ? `${price.min}`
-      : `${price.min} ~ ${price.max}`;
-    priceHtml = `<div class="card-price per-unit">
-      <span class="price-eq">≈</span>
-      <span class="price-val">${range}</span>
-      <span class="price-unit">混沌石</span>
-    </div>`;
+    const range = price.min === price.max ? `${price.min}` : `${price.min} ~ ${price.max}`;
+    priceHtml = `<div class="card-price per-unit"><span class="price-eq">≈</span><span class="price-val">${range}</span><span class="price-unit">混沌石</span></div>`;
   } else {
-    const range = price.min === price.max
-      ? `${price.min}`
-      : `${price.min} ~ ${price.max}`;
-    priceHtml = `<div class="card-price bulk">
-      <span class="price-val">${range}</span>
-      <span class="price-unit">枚 = 1 混沌石</span>
-    </div>`;
+    const range = price.min === price.max ? `${price.min}` : `${price.min} ~ ${price.max}`;
+    priceHtml = `<div class="card-price bulk"><span class="price-val">${range}</span><span class="price-unit">枚 = 1 混沌石</span></div>`;
   }
 
   return `<div class="currency-card" title="${escHtml(currency)}">
     <div class="card-header">
-      <img class="card-icon" src="public/res/img/${escHtml(currency)}.png" alt="${escHtml(name)}" onerror="this.style.display='none'">
+      <img class="card-icon" src="${escHtml(src)}" alt="${escHtml(name)}" onerror="this.style.display='none'">
       <div class="card-name">${escHtml(name)}</div>
     </div>
     ${priceHtml}
@@ -327,45 +354,45 @@ function renderCurrencyCard(currency) {
   </div>`;
 }
 
-// ratio key is always the "bulk" currency (the cheaper one in the pair)
-// e.g. chaos|divine → {"chaos":185} = 185 chaos per 1 divine
-// e.g. alch|chaos  → {"alch":3}    = 3 alch per 1 chaos
-function getChaosPrice(currency) {
-  const pair = allMarkets.find(m =>
-    m.market_id === `chaos|${currency}` || m.market_id === `${currency}|chaos`
-  );
-  if (!pair) return null;
+// ── Generic tab ───────────────────────────────────────────────────────────────
+function renderGenericTab(el) {
+  const cat    = staticData?.find(c => c.id === activeTab);
+  const search = (document.getElementById('pair-search')?.value ?? '').toLowerCase().trim();
+  if (!cat) { el.innerHTML = '<p class="empty-msg">分類資料載入中...</p>'; return; }
 
-  const chaosMin = getVal(pair.lowest_ratio,  'chaos');
-  const chaosMax = getVal(pair.highest_ratio, 'chaos');
-  if (chaosMin != null) {
-    return { type: 'per-unit', min: chaosMin, max: chaosMax ?? chaosMin };
-  }
+  const entries = cat.entries.filter(e => {
+    if (!search) return true;
+    return e.id.includes(search) || e.text.toLowerCase().includes(search);
+  });
 
-  const bulkMin = getVal(pair.lowest_ratio,  currency);
-  const bulkMax = getVal(pair.highest_ratio, currency);
-  if (bulkMin != null) {
-    return { type: 'bulk', min: bulkMin, max: bulkMax ?? bulkMin };
-  }
+  document.getElementById('tab-count').textContent = `${entries.length} / ${cat.entries.length} 個品項`;
+  if (!entries.length) { el.innerHTML = '<p class="empty-msg">沒有符合條件的資料</p>'; return; }
 
-  return null;
+  el.innerHTML = `<div class="card-grid generic">${entries.map(e => renderGenericCard(e)).join('')}</div>`;
 }
 
-function getCurrencyVolume(currency) {
-  return allMarkets
-    .filter(m => { const [s, b] = m.market_id.split('|'); return s === currency || b === currency; })
-    .reduce((sum, m) => sum + sumVolume(m), 0);
+function renderGenericCard(entry) {
+  const src  = imgSrc(entry);
+  const name = CURRENCY_ZH[entry.id] || entry.text || entry.id;
+  return `<div class="currency-card generic-card" title="${escHtml(entry.id)}">
+    <div class="card-header">
+      ${src ? `<img class="card-icon" src="${escHtml(src)}" alt="${escHtml(name)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+      <div class="card-name">${escHtml(name)}</div>
+    </div>
+  </div>`;
 }
 
+// ── Stats bar ─────────────────────────────────────────────────────────────────
 function renderStats() {
-  const bar = document.getElementById('stats-bar');
-  const totalVol = allMarkets.reduce((sum, m) => sum + sumVolume(m), 0);
-  const pairs = new Set(allMarkets.map(m => m.market_id.split('|').sort().join('|'))).size;
+  const bar      = document.getElementById('stats-bar');
+  const totalVol = allMarkets.reduce((s, m) => s + sumVolume(m), 0);
+  const pairs    = new Set(allMarkets.map(m => m.market_id.split('|').sort().join('|'))).size;
 
   bar.innerHTML = [
     stat('聯賽', currentLeague),
     stat('交易對數', pairs.toLocaleString()),
     stat('總交易量', totalVol.toLocaleString()),
+    staticData ? stat('靜態分類', staticData.length.toLocaleString()) : '',
   ].join('');
 }
 
@@ -373,71 +400,69 @@ function stat(label, value) {
   return `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div></div>`;
 }
 
-function fmtK(v) {
-  if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
-  if (v >= 1000)    return (v / 1000).toFixed(1) + 'K';
-  return String(v);
+// ── Price helpers ─────────────────────────────────────────────────────────────
+function getChaosPrice(currency) {
+  const pair = allMarkets.find(m => m.market_id === `chaos|${currency}` || m.market_id === `${currency}|chaos`);
+  if (!pair) return null;
+  const chaosMin = getVal(pair.lowest_ratio,  'chaos');
+  const chaosMax = getVal(pair.highest_ratio, 'chaos');
+  if (chaosMin != null) return { type: 'per-unit', min: chaosMin, max: chaosMax ?? chaosMin };
+  const bulkMin = getVal(pair.lowest_ratio,  currency);
+  const bulkMax = getVal(pair.highest_ratio, currency);
+  if (bulkMin != null) return { type: 'bulk', min: bulkMin, max: bulkMax ?? bulkMin };
+  return null;
+}
+
+function getCurrencyVolume(currency) {
+  return allMarkets
+    .filter(m => { const [s,b] = m.market_id.split('|'); return s===currency||b===currency; })
+    .reduce((s, m) => s + sumVolume(m), 0);
 }
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
+let refreshTimer = null, countdownTimer = null, nextRefreshAt = null;
 
 function scheduleAutoRefresh() {
   clearTimeout(refreshTimer);
   clearInterval(countdownTimer);
-
-  const minutes = parseInt(document.getElementById('refresh-interval')?.value ?? '0', 10);
+  const minutes    = parseInt(document.getElementById('refresh-interval')?.value ?? '0', 10);
   const countdownEl = document.getElementById('countdown');
-
-  if (!minutes) {
-    countdownEl.textContent = '';
-    return;
-  }
-
+  if (!minutes) { if (countdownEl) countdownEl.textContent = ''; return; }
   const ms = minutes * 60 * 1000;
   nextRefreshAt = Date.now() + ms;
   refreshTimer  = setTimeout(() => loadData(false), ms);
-
   countdownTimer = setInterval(() => {
-    const remaining = Math.max(0, nextRefreshAt - Date.now());
-    const m = Math.floor(remaining / 60000);
-    const s = Math.floor((remaining % 60000) / 1000);
-    countdownEl.textContent = `下次刷新 ${m}:${s.toString().padStart(2, '0')}`;
+    const rem = Math.max(0, nextRefreshAt - Date.now());
+    const m   = Math.floor(rem / 60000);
+    const s   = Math.floor((rem % 60000) / 1000);
+    if (countdownEl) countdownEl.textContent = `下次刷新 ${m}:${s.toString().padStart(2,'0')}`;
   }, 1000);
 }
 
 document.getElementById('refresh-interval').addEventListener('change', scheduleAutoRefresh);
 
 // ── Settings modal ────────────────────────────────────────────────────────────
-
 function openSettings() {
   const creds = getCreds();
   if (creds) {
-    document.getElementById('input-client-id').value = creds.clientId;
+    document.getElementById('input-client-id').value     = creds.clientId;
     document.getElementById('input-client-secret').value = creds.clientSecret;
   }
   document.getElementById('settings-error').classList.add('hidden');
   document.getElementById('settings-overlay').classList.remove('hidden');
 }
-
-function closeSettings() {
-  document.getElementById('settings-overlay').classList.add('hidden');
-}
-
-function closeSettingsOnOverlay(e) {
-  if (e.target === document.getElementById('settings-overlay')) closeSettings();
-}
+function closeSettings() { document.getElementById('settings-overlay').classList.add('hidden'); }
+function closeSettingsOnOverlay(e) { if (e.target === document.getElementById('settings-overlay')) closeSettings(); }
 
 function saveCredentials() {
   const clientId     = document.getElementById('input-client-id').value.trim();
   const clientSecret = document.getElementById('input-client-secret').value.trim();
   const errEl        = document.getElementById('settings-error');
-
   if (!clientId || !clientSecret) {
     errEl.textContent = '請填入 Client ID 和 Client Secret';
     errEl.classList.remove('hidden');
     return;
   }
-
   saveCreds(clientId, clientSecret);
   localStorage.removeItem(TOKEN_KEY);
   isDemoMode = false;
@@ -445,52 +470,32 @@ function saveCredentials() {
   loadData(true);
 }
 
-function clearCredentials() {
-  clearCredsAndToken();
-  isDemoMode = true;
-  closeSettings();
-  loadData();
-}
-
-function useDemo() {
-  isDemoMode = true;
-  closeSettings();
-  loadData();
-}
+function clearCredentials() { clearCredsAndToken(); isDemoMode = true; closeSettings(); loadData(); }
+function useDemo()          { isDemoMode = true; closeSettings(); loadData(); }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
 function getVal(obj, key) {
   if (!obj) return null;
   if (key in obj) return obj[key];
   const k = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
   return k !== undefined ? obj[k] : null;
 }
-
 function sumVolume(m) {
   return Object.values(m.volume_traded || {}).reduce((s, v) => s + v, 0);
 }
-
-function minRatio(m) {
-  const vals = Object.values(m.lowest_ratio || {});
-  return vals.length ? Math.min(...vals) : Infinity;
+function fmtK(v) {
+  if (v >= 1000000) return (v/1000000).toFixed(1) + 'M';
+  if (v >= 1000)    return (v/1000).toFixed(1) + 'K';
+  return String(v);
 }
-
-function fmt(v) {
-  if (v === null || v === undefined) return '<span style="color:#555">—</span>';
-  return Number(v).toLocaleString();
-}
-
 function escHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+if (!getCreds()) isDemoMode = true;
 
-if (!getCreds()) {
-  isDemoMode = true;
-}
-fetchCurrentLeague().then(() => loadData());
+Promise.all([fetchCurrentLeague(), loadStaticData()]).then(() => {
+  renderTabs();
+  loadData();
+});

@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POE Currency Exchange Dashboard</title>
-  <link rel="stylesheet" href="assets/style.css?v=4" />
+  <title>POE Trade Dashboard</title>
+  <link rel="stylesheet" href="assets/style.css?v=5" />
 </head>
 <body>
   <div id="app">
     <header>
       <div class="header-inner">
         <div class="title-group">
-          <h1>POE Currency Exchange</h1>
+          <h1>POE Trade Dashboard</h1>
           <span class="realm-badge">PC · PoE1 · Mirage</span>
         </div>
         <div class="header-meta">
@@ -23,10 +23,14 @@
       </div>
     </header>
 
+    <!-- Tab navigation -->
+    <nav id="tab-nav" class="tab-nav" role="tablist"></nav>
+
+    <!-- Toolbar (search + refresh) -->
     <div class="toolbar">
       <div class="filter-group">
-        <label>搜尋通貨</label>
-        <input type="text" id="pair-search" placeholder="例如：混沌石、divine..." oninput="render()" />
+        <label>搜尋</label>
+        <input type="text" id="pair-search" placeholder="搜尋品項名稱..." oninput="renderTabContent()" />
       </div>
       <div class="filter-group">
         <label>自動刷新</label>
@@ -38,13 +42,14 @@
           <option value="60" selected>60 分鐘</option>
         </select>
       </div>
+      <div id="tab-count" class="tab-count"></div>
     </div>
 
     <div id="stats-bar" class="stats-bar"></div>
 
     <main id="content">
       <div id="hero-section"></div>
-      <div id="categories-section"></div>
+      <div id="tab-content"></div>
     </main>
 
     <footer>
@@ -82,6 +87,6 @@
     </div>
   </div>
 
-  <script src="assets/app.js?v=4"></script>
+  <script src="assets/app.js?v=5"></script>
 </body>
 </html>
