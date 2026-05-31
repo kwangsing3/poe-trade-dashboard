@@ -244,9 +244,10 @@ function renderTabs() {
   if (!staticData) { nav.innerHTML = ''; return; }
 
   nav.innerHTML = staticData.map(cat => {
-    const label = TAB_ZH[cat.id] || cat.label;
-    const active = cat.id === activeTab ? ' active' : '';
-    return `<button class="tab-btn${active}" onclick="switchTab('${cat.id}')" role="tab">${escHtml(label)}<span class="tab-count-badge">${cat.entries.length}</span></button>`;
+    const label   = TAB_ZH[cat.id] || cat.label;
+    const active  = cat.id === activeTab ? ' active' : '';
+    const validN  = cat.entries.filter(e => e.id !== 'sep' && e.text).length;
+    return `<button class="tab-btn${active}" onclick="switchTab('${cat.id}')" role="tab">${escHtml(label)}<span class="tab-count-badge">${validN}</span></button>`;
   }).join('');
 }
 
@@ -375,8 +376,12 @@ function renderCurrencyTab(el) {
   const knownIds = new Set(CURRENCY_GROUPS.flatMap(g => g.currencies).concat(['chaos','divine']));
   if (catEntry) {
     const others = catEntry.entries.filter(e => {
+      if (e.id === 'sep' || !e.text) return false;
       if (knownIds.has(e.id)) return false;
-      if (search && !e.id.includes(search) && !e.text.toLowerCase().includes(search) && !(CURRENCY_ZH[e.id]||'').includes(search)) return false;
+      if (search) {
+        const zh = (CURRENCY_ZH[e.id] || itemName(e.id, e.text)).toLowerCase();
+        if (!e.id.includes(search) && !e.text.toLowerCase().includes(search) && !zh.includes(search)) return false;
+      }
       return true;
     });
     if (others.length) {
@@ -417,12 +422,16 @@ function renderGenericTab(el) {
   const search = (document.getElementById('pair-search')?.value ?? '').toLowerCase().trim();
   if (!cat) { el.innerHTML = '<p class="empty-msg">分類資料載入中...</p>'; return; }
 
-  const entries = cat.entries.filter(e => {
+  // Filter out separators and entries without text
+  const valid = cat.entries.filter(e => e.id !== 'sep' && e.text);
+
+  const entries = valid.filter(e => {
     if (!search) return true;
-    return e.id.includes(search) || e.text.toLowerCase().includes(search);
+    const zh = itemName(e.id, e.text).toLowerCase();
+    return e.id.includes(search) || e.text.toLowerCase().includes(search) || zh.includes(search);
   });
 
-  document.getElementById('tab-count').textContent = `${entries.length} / ${cat.entries.length} 個品項`;
+  document.getElementById('tab-count').textContent = `${entries.length} / ${valid.length} 個品項`;
   if (!entries.length) { el.innerHTML = '<p class="empty-msg">沒有符合條件的資料</p>'; return; }
 
   el.innerHTML = `<div class="card-grid generic">${entries.map(e => renderGenericCard(e)).join('')}</div>`;
@@ -430,7 +439,7 @@ function renderGenericTab(el) {
 
 function renderGenericCard(entry) {
   const src  = imgSrc(entry);
-  const name = CURRENCY_ZH[entry.id] || entry.text || entry.id;
+  const name = CURRENCY_ZH[entry.id] || itemName(entry.id, entry.text);
 
   let priceHtml = '';
   if (mockPrices?.prices) {
