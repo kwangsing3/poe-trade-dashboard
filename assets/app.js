@@ -211,8 +211,8 @@ async function loadData(manual = false) {
 // ── Rendering ─────────────────────────────────────────────────────────────────
 
 function renderTable() {
-  const search  = document.getElementById('pair-search').value.toLowerCase().trim();
-  const sortBy  = document.getElementById('sort-by').value;
+  const search  = (document.getElementById('pair-search')?.value ?? '').toLowerCase().trim();
+  const sortBy  = document.getElementById('sort-by')?.value ?? 'volume_desc';
 
   let rows = allMarkets.filter(m => {
     if (search) {
@@ -288,7 +288,7 @@ function scheduleAutoRefresh() {
   clearTimeout(refreshTimer);
   clearInterval(countdownTimer);
 
-  const minutes = parseInt(document.getElementById('refresh-interval').value, 10);
+  const minutes = parseInt(document.getElementById('refresh-interval')?.value ?? '0', 10);
   const countdownEl = document.getElementById('countdown');
 
   if (!minutes) {
