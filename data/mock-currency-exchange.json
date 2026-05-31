@@ -1,7 +1,5 @@
 {
-  "next_change_id": 1748822400,
   "fetched_at": "2026-05-31T12:00:00Z",
-  "realm": "pc",
   "markets": [
     {"league":"Mirage","market_id":"chaos|divine","volume_traded":{"chaos":182340,"divine":920},"lowest_stock":{"chaos":5000},"highest_stock":{"chaos":95000},"lowest_ratio":{"chaos":185},"highest_ratio":{"chaos":215}},
     {"league":"Mirage","market_id":"divine|chaos","volume_traded":{"divine":850,"chaos":168000},"lowest_stock":{"divine":12},"highest_stock":{"divine":180},"lowest_ratio":{"divine":1},"highest_ratio":{"divine":1}},

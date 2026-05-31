@@ -274,7 +274,6 @@ function renderStats(json) {
     stat('聯賽', currentLeague),
     stat('交易對數', allMarkets.length.toLocaleString()),
     stat('總交易量', totalVol.toLocaleString()),
-    json.next_change_id ? stat('Next Change ID', json.next_change_id) : '',
   ].join('');
 }
 
