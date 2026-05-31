@@ -1,0 +1,97 @@
+name: Fetch POE Currency Exchange Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      change_id:
+        description: 'Specific change_id (unix timestamp) to fetch. Leave empty for latest.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get OAuth token
+        id: auth
+        run: |
+          RESPONSE=$(curl -s -X POST "https://api.pathofexile.com/oauth/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "client_id=${{ secrets.POE_CLIENT_ID }}&client_secret=${{ secrets.POE_CLIENT_SECRET }}&grant_type=client_credentials&scope=service:cxapi")
+
+          TOKEN=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Failed to obtain access token. Response: $RESPONSE"
+            exit 1
+          fi
+
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch currency exchange data
+        id: fetch
+        run: |
+          TOKEN="${{ steps.auth.outputs.token }}"
+          CHANGE_ID="${{ github.event.inputs.change_id }}"
+
+          # Build URL: base endpoint (PoE1 PC, no realm param)
+          if [ -n "$CHANGE_ID" ]; then
+            URL="https://api.pathofexile.com/currency-exchange/${CHANGE_ID}"
+          else
+            URL="https://api.pathofexile.com/currency-exchange"
+          fi
+
+          echo "Fetching: $URL"
+
+          HTTP_CODE=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "User-Agent: poe-trade-dashboard/1.0 (contact: ${{ secrets.CONTACT_EMAIL || 'unknown' }})" \
+            "$URL")
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::API returned HTTP $HTTP_CODE"
+            cat /tmp/response.json
+            exit 1
+          fi
+
+          # Validate JSON
+          python3 -c "import json,sys; d=json.load(open('/tmp/response.json')); print(f'Markets: {len(d.get(\"markets\",[]))}')"
+
+          # Inject metadata
+          python3 - << 'PYEOF'
+          import json, datetime
+
+          with open('/tmp/response.json') as f:
+              data = json.load(f)
+
+          data['fetched_at'] = datetime.datetime.utcnow().isoformat() + 'Z'
+          data['realm'] = 'pc'
+
+          with open('data/currency-exchange.json', 'w') as f:
+              json.dump(data, f, separators=(',', ':'))
+
+          print(f"Saved {len(data.get('markets', []))} markets")
+          PYEOF
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/currency-exchange.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          MARKETS=$(python3 -c "import json; d=json.load(open('data/currency-exchange.json')); print(len(d.get('markets',[])))")
+          git commit -m "chore: update currency exchange data (${MARKETS} markets) [skip ci]"
+          git push
