@@ -412,6 +412,18 @@ footer a:hover { text-decoration: underline; }
 }
 .btn-danger:hover { background: rgba(229,57,53,0.1); }
 
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-right: auto;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--text-dim); }
+
 @media (max-width: 640px) {
   h1 { font-size: 17px; }
   .toolbar { flex-direction: column; }

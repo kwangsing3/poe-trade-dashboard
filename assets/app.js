@@ -5,6 +5,9 @@ const TOKEN_URL  = `${API_BASE}/oauth/token`;
 const CX_URL     = `${API_BASE}/currency-exchange`;
 const STORE_KEY  = 'poe_cx_creds';
 const TOKEN_KEY  = 'poe_cx_token';
+const MOCK_URL   = 'data/mock-currency-exchange.json';
+
+let isDemoMode = false;
 
 let allMarkets   = [];
 let refreshTimer = null;
@@ -90,11 +93,6 @@ async function fetchCurrencyExchange(token) {
 // ── Main load ─────────────────────────────────────────────────────────────────
 
 async function loadData(manual = false) {
-  if (!getCreds()) {
-    openSettings();
-    return;
-  }
-
   const btn = document.getElementById('refresh-btn');
   const updatedEl = document.getElementById('last-updated');
 
@@ -103,8 +101,18 @@ async function loadData(manual = false) {
   updatedEl.textContent = '資料載入中...';
 
   try {
-    const token = await getToken(manual);   // force new token on manual refresh
-    const json  = await fetchCurrencyExchange(token);
+    let json;
+
+    if (isDemoMode || !getCreds()) {
+      // Demo mode: load local mock data
+      isDemoMode = true;
+      const res = await fetch(manual ? `${MOCK_URL}?t=${Date.now()}` : MOCK_URL);
+      if (!res.ok) throw new Error(`無法載入 mock 資料 (HTTP ${res.status})`);
+      json = await res.json();
+    } else {
+      const token = await getToken(manual);
+      json = await fetchCurrencyExchange(token);
+    }
 
     allMarkets = Array.isArray(json.markets) ? json.markets : [];
 
@@ -113,7 +121,8 @@ async function loadData(manual = false) {
     renderStats(json);
 
     const now = new Date();
-    updatedEl.textContent = `上次更新：${now.toLocaleTimeString('zh-TW')}`;
+    const prefix = isDemoMode ? '[Demo] 上次更新：' : '上次更新：';
+    updatedEl.textContent = prefix + now.toLocaleTimeString('zh-TW');
 
   } catch (err) {
     document.getElementById('market-body').innerHTML =
@@ -269,19 +278,23 @@ function saveCredentials() {
   }
 
   saveCreds(clientId, clientSecret);
-  localStorage.removeItem(TOKEN_KEY); // force token refresh
+  localStorage.removeItem(TOKEN_KEY);
+  isDemoMode = false;
   closeSettings();
   loadData(true);
 }
 
 function clearCredentials() {
   clearCredsAndToken();
-  allMarkets = [];
-  document.getElementById('market-body').innerHTML =
-    '<tr><td colspan="8" class="loading">請先設定 API 憑證 (點右上角 ⚙)</td></tr>';
-  document.getElementById('stats-bar').innerHTML = '';
-  document.getElementById('last-updated').textContent = '—';
+  isDemoMode = true;
   closeSettings();
+  loadData();
+}
+
+function useDemo() {
+  isDemoMode = true;
+  closeSettings();
+  loadData();
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -316,8 +329,7 @@ function escHtml(s) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-if (getCreds()) {
-  loadData();
-} else {
-  openSettings();
+if (!getCreds()) {
+  isDemoMode = true;
 }
+loadData();
