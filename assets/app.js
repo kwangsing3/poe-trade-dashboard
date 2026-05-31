@@ -439,19 +439,17 @@ function renderGenericCard(entry) {
       const cpd       = mockPrices.chaosPerDivine || 200;
       const divineVal = chaosVal / cpd;
 
-      // Chaos display
-      const chaosStr = chaosVal >= 1
-        ? `≈ ${chaosVal.toLocaleString(undefined, { maximumFractionDigits: 1 })} 混沌石`
-        : `≈ ${chaosVal.toFixed(2)} 混沌石`;
+      const chaosStr  = chaosVal >= 1
+        ? chaosVal.toLocaleString(undefined, { maximumFractionDigits: 1 })
+        : chaosVal.toFixed(2);
 
-      // Divine display (only show if ≥ 0.01 divine)
-      const divineStr = divineVal >= 0.01
-        ? `≈ ${divineVal.toLocaleString(undefined, { maximumFractionDigits: 3 })} 神聖石`
-        : '';
+      const divineStr = divineVal >= 1
+        ? divineVal.toLocaleString(undefined, { maximumFractionDigits: 2 })
+        : divineVal.toFixed(3);
 
       priceHtml = `<div class="generic-price">
-        <span class="gp-chaos">${chaosStr}</span>
-        ${divineStr ? `<span class="gp-divine">${divineStr}</span>` : ''}
+        <span class="gp-chaos">≈ ${chaosStr} <em>混沌石</em></span>
+        <span class="gp-divine">≈ ${divineStr} <em>神聖石</em></span>
       </div>`;
     }
   }

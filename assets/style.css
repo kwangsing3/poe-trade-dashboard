@@ -284,16 +284,19 @@ h1 { font-size: 22px; color: var(--gold); letter-spacing: 0.5px; font-weight: 60
   gap: 2px;
   margin: 4px 0 2px;
 }
-.gp-chaos {
+.gp-chaos,
+.gp-divine {
   font-size: 13px;
   font-weight: 600;
-  color: #ef9a9a;
   font-variant-numeric: tabular-nums;
 }
-.gp-divine {
+.gp-chaos { color: #ef9a9a; }
+.gp-divine { color: #a5d6a7; }
+.gp-chaos em, .gp-divine em {
+  font-style: normal;
+  font-weight: 400;
   font-size: 11px;
-  color: #a5d6a7;
-  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
 }
 
 .card-header {
