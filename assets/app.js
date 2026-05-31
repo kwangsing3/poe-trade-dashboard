@@ -188,16 +188,16 @@ async function loadData(manual = false) {
     allMarkets = (Array.isArray(json.markets) ? json.markets : [])
       .filter(m => m.league === currentLeague);
 
-    renderTable();
-    renderStats(json);
+    render();
+    renderStats();
 
     const now = new Date();
     const prefix = isDemoMode ? '[Demo] 上次更新：' : '上次更新：';
     updatedEl.textContent = prefix + now.toLocaleTimeString('zh-TW');
 
   } catch (err) {
-    document.getElementById('market-body').innerHTML =
-      `<tr><td colspan="7" class="error">⚠ ${escHtml(err.message)}</td></tr>`;
+    document.getElementById('categories-section').innerHTML =
+      `<p class="error-msg">⚠ ${escHtml(err.message)}</p>`;
     updatedEl.textContent = '載入失敗';
     console.error(err);
   } finally {
@@ -208,77 +208,170 @@ async function loadData(manual = false) {
   scheduleAutoRefresh();
 }
 
+// ── Category definitions ──────────────────────────────────────────────────────
+
+const CATEGORIES = [
+  {
+    id: 'high',
+    label: '高價通貨',
+    currencies: ['exalted', 'mirror', 'annul', 'ancient-orb', 'eternal'],
+  },
+  {
+    id: 'craft',
+    label: '製作通貨',
+    currencies: ['vaal', 'regal', 'gcp', 'alch', 'fusing', 'alt', 'chrome',
+                 'jewellers', 'chance', 'scour', 'regret', 'blessed',
+                 'transmute', 'aug', 'chisel', 'bauble'],
+  },
+  {
+    id: 'misc',
+    label: '消耗品',
+    currencies: ['wisdom', 'portal', 'whetstone', 'scrap', 'engineers'],
+  },
+];
+
 // ── Rendering ─────────────────────────────────────────────────────────────────
 
-function renderTable() {
-  const search  = (document.getElementById('pair-search')?.value ?? '').toLowerCase().trim();
-  const sortBy  = document.getElementById('sort-by')?.value ?? 'volume_desc';
-
-  let rows = allMarkets.filter(m => {
-    if (search) {
-      const [s, b] = m.market_id.split('|');
-      const matchId = m.market_id.toLowerCase().includes(search);
-      const matchZh = currencyName(s).includes(search) || currencyName(b).includes(search);
-      if (!matchId && !matchZh) return false;
-    }
-    return true;
-  });
-
-  rows.sort((a, b) => {
-    switch (sortBy) {
-      case 'volume_asc': return sumVolume(a) - sumVolume(b);
-      case 'pair_asc':   return a.market_id.localeCompare(b.market_id);
-      case 'ratio_asc':  return minRatio(a) - minRatio(b);
-      default:           return sumVolume(b) - sumVolume(a);
-    }
-  });
-
-  const tbody = document.getElementById('market-body');
-
-  if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">沒有符合條件的資料</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = rows.map(m => {
-    const [sell, buy] = m.market_id.split('|');
-    const volSell   = getVal(m.volume_traded,  sell);
-    const volBuy    = getVal(m.volume_traded,  buy);
-    const lowStock  = getVal(m.lowest_stock,   sell) ?? getVal(m.lowest_stock,  buy);
-    const highStock = getVal(m.highest_stock,  sell) ?? getVal(m.highest_stock, buy);
-    const lowRatio  = getVal(m.lowest_ratio,   sell) ?? getVal(m.lowest_ratio,  buy);
-    const highRatio = getVal(m.highest_ratio,  sell) ?? getVal(m.highest_ratio, buy);
-
-    return `<tr>
-      <td><div class="pair-cell">
-        <span class="currency-tag" title="${escHtml(sell)}">${escHtml(currencyName(sell))}</span>
-        <span class="arrow">→</span>
-        <span class="currency-tag" title="${escHtml(buy)}">${escHtml(currencyName(buy))}</span>
-      </div></td>
-      <td class="num volume">${fmt(volSell)}</td>
-      <td class="num volume">${fmt(volBuy)}</td>
-      <td class="num">${fmt(lowStock)}</td>
-      <td class="num">${fmt(highStock)}</td>
-      <td class="num ratio-low">${fmt(lowRatio)}</td>
-      <td class="num ratio-high">${fmt(highRatio)}</td>
-    </tr>`;
-  }).join('');
+function render() {
+  renderHero();
+  renderCategories();
 }
 
-function renderStats(json) {
+function renderHero() {
+  const heroEl = document.getElementById('hero-section');
+  const buy  = allMarkets.find(m => m.market_id === 'chaos|divine');  // chaos → divine
+  const sell = allMarkets.find(m => m.market_id === 'divine|chaos');  // divine → chaos
+
+  if (!buy && !sell) { heroEl.innerHTML = ''; return; }
+
+  const buyMin  = buy  ? getVal(buy.lowest_ratio,  'chaos') : null;
+  const buyMax  = buy  ? getVal(buy.highest_ratio, 'chaos') : null;
+  const sellMin = sell ? getVal(sell.lowest_ratio,  'chaos') : null;
+  const sellMax = sell ? getVal(sell.highest_ratio, 'chaos') : null;
+  const totalVol = (buy ? sumVolume(buy) : 0) + (sell ? sumVolume(sell) : 0);
+
+  heroEl.innerHTML = `
+    <div class="hero-card">
+      <div class="hero-title">
+        <span class="hero-currency">混沌石</span>
+        <span class="hero-divider">↔</span>
+        <span class="hero-currency">神聖石</span>
+      </div>
+      <div class="hero-rates">
+        ${buyMin  != null ? `<div class="hero-rate-row"><span class="rate-dir">買入神聖石</span><span class="rate-val">${buyMin}${buyMax !== buyMin ? ' ~ ' + buyMax : ''}</span><span class="rate-unit">混沌石</span></div>` : ''}
+        ${sellMin != null ? `<div class="hero-rate-row"><span class="rate-dir">賣出神聖石</span><span class="rate-val">${sellMin}${sellMax !== sellMin ? ' ~ ' + sellMax : ''}</span><span class="rate-unit">混沌石</span></div>` : ''}
+      </div>
+      <div class="hero-vol">成交量 ${totalVol.toLocaleString()}</div>
+    </div>`;
+}
+
+function renderCategories() {
+  const search = (document.getElementById('pair-search')?.value ?? '').toLowerCase().trim();
+  const catEl  = document.getElementById('categories-section');
+  let html = '';
+
+  for (const cat of CATEGORIES) {
+    const cards = cat.currencies
+      .filter(c => !search || c.includes(search) || currencyName(c).includes(search))
+      .map(c => renderCurrencyCard(c))
+      .filter(Boolean);
+
+    if (cards.length === 0) continue;
+
+    html += `
+      <section class="category-section">
+        <h2 class="category-title">${cat.label}</h2>
+        <div class="card-grid">${cards.join('')}</div>
+      </section>`;
+  }
+
+  catEl.innerHTML = html || '<p class="empty-msg">沒有符合條件的資料</p>';
+}
+
+function renderCurrencyCard(currency) {
+  const price = getChaosPrice(currency);
+  if (!price) return null;
+
+  const vol  = getCurrencyVolume(currency);
+  const name = currencyName(currency);
+
+  let priceHtml;
+  if (price.type === 'per-unit') {
+    const range = price.min === price.max
+      ? `${price.min}`
+      : `${price.min} ~ ${price.max}`;
+    priceHtml = `<div class="card-price per-unit">
+      <span class="price-eq">≈</span>
+      <span class="price-val">${range}</span>
+      <span class="price-unit">混沌石</span>
+    </div>`;
+  } else {
+    const range = price.min === price.max
+      ? `${price.min}`
+      : `${price.min} ~ ${price.max}`;
+    priceHtml = `<div class="card-price bulk">
+      <span class="price-val">${range}</span>
+      <span class="price-unit">枚 = 1 混沌石</span>
+    </div>`;
+  }
+
+  return `<div class="currency-card" title="${escHtml(currency)}">
+    <div class="card-name">${escHtml(name)}</div>
+    ${priceHtml}
+    <div class="card-vol">成交量 ${fmtK(vol)}</div>
+  </div>`;
+}
+
+// ratio key is always the "bulk" currency (the cheaper one in the pair)
+// e.g. chaos|divine → {"chaos":185} = 185 chaos per 1 divine
+// e.g. alch|chaos  → {"alch":3}    = 3 alch per 1 chaos
+function getChaosPrice(currency) {
+  const pair = allMarkets.find(m =>
+    m.market_id === `chaos|${currency}` || m.market_id === `${currency}|chaos`
+  );
+  if (!pair) return null;
+
+  const chaosMin = getVal(pair.lowest_ratio,  'chaos');
+  const chaosMax = getVal(pair.highest_ratio, 'chaos');
+  if (chaosMin != null) {
+    return { type: 'per-unit', min: chaosMin, max: chaosMax ?? chaosMin };
+  }
+
+  const bulkMin = getVal(pair.lowest_ratio,  currency);
+  const bulkMax = getVal(pair.highest_ratio, currency);
+  if (bulkMin != null) {
+    return { type: 'bulk', min: bulkMin, max: bulkMax ?? bulkMin };
+  }
+
+  return null;
+}
+
+function getCurrencyVolume(currency) {
+  return allMarkets
+    .filter(m => { const [s, b] = m.market_id.split('|'); return s === currency || b === currency; })
+    .reduce((sum, m) => sum + sumVolume(m), 0);
+}
+
+function renderStats() {
   const bar = document.getElementById('stats-bar');
-  const totalVol = allMarkets.reduce((sum, m) =>
-    sum + Object.values(m.volume_traded || {}).reduce((s, v) => s + v, 0), 0);
+  const totalVol = allMarkets.reduce((sum, m) => sum + sumVolume(m), 0);
+  const pairs = new Set(allMarkets.map(m => m.market_id.split('|').sort().join('|'))).size;
 
   bar.innerHTML = [
     stat('聯賽', currentLeague),
-    stat('交易對數', allMarkets.length.toLocaleString()),
+    stat('交易對數', pairs.toLocaleString()),
     stat('總交易量', totalVol.toLocaleString()),
   ].join('');
 }
 
 function stat(label, value) {
   return `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div></div>`;
+}
+
+function fmtK(v) {
+  if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
+  if (v >= 1000)    return (v / 1000).toFixed(1) + 'K';
+  return String(v);
 }
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────

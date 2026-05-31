@@ -2,42 +2,56 @@
   "fetched_at": "2026-05-31T12:00:00Z",
   "markets": [
     {"league":"Mirage","market_id":"chaos|divine","volume_traded":{"chaos":182340,"divine":920},"lowest_stock":{"chaos":5000},"highest_stock":{"chaos":95000},"lowest_ratio":{"chaos":185},"highest_ratio":{"chaos":215}},
-    {"league":"Mirage","market_id":"divine|chaos","volume_traded":{"divine":850,"chaos":168000},"lowest_stock":{"divine":12},"highest_stock":{"divine":180},"lowest_ratio":{"divine":1},"highest_ratio":{"divine":1}},
+    {"league":"Mirage","market_id":"divine|chaos","volume_traded":{"divine":850,"chaos":168000},"lowest_stock":{"divine":12},"highest_stock":{"divine":180},"lowest_ratio":{"chaos":190},"highest_ratio":{"chaos":210}},
+
     {"league":"Mirage","market_id":"chaos|exalted","volume_traded":{"chaos":42000,"exalted":520},"lowest_stock":{"chaos":2000},"highest_stock":{"chaos":28000},"lowest_ratio":{"chaos":78},"highest_ratio":{"chaos":95}},
-    {"league":"Mirage","market_id":"exalted|chaos","volume_traded":{"exalted":480,"chaos":39000},"lowest_stock":{"exalted":8},"highest_stock":{"exalted":75},"lowest_ratio":{"exalted":1},"highest_ratio":{"exalted":1}},
+    {"league":"Mirage","market_id":"exalted|chaos","volume_traded":{"exalted":480,"chaos":39000},"lowest_stock":{"exalted":8},"highest_stock":{"exalted":75},"lowest_ratio":{"chaos":80},"highest_ratio":{"chaos":92}},
+
     {"league":"Mirage","market_id":"chaos|mirror","volume_traded":{"chaos":450000,"mirror":2},"lowest_stock":{"chaos":100000},"highest_stock":{"chaos":500000},"lowest_ratio":{"chaos":220000},"highest_ratio":{"chaos":260000}},
-    {"league":"Mirage","market_id":"mirror|chaos","volume_traded":{"mirror":2,"chaos":440000},"lowest_stock":{"mirror":1},"highest_stock":{"mirror":3},"lowest_ratio":{"mirror":1},"highest_ratio":{"mirror":1}},
+    {"league":"Mirage","market_id":"mirror|chaos","volume_traded":{"mirror":2,"chaos":440000},"lowest_stock":{"mirror":1},"highest_stock":{"mirror":3},"lowest_ratio":{"chaos":225000},"highest_ratio":{"chaos":255000}},
+
     {"league":"Mirage","market_id":"chaos|annul","volume_traded":{"chaos":18000,"annul":320},"lowest_stock":{"chaos":1000},"highest_stock":{"chaos":12000},"lowest_ratio":{"chaos":52},"highest_ratio":{"chaos":68}},
-    {"league":"Mirage","market_id":"annul|chaos","volume_traded":{"annul":290,"chaos":16500},"lowest_stock":{"annul":5},"highest_stock":{"annul":60},"lowest_ratio":{"annul":1},"highest_ratio":{"annul":1}},
+    {"league":"Mirage","market_id":"annul|chaos","volume_traded":{"annul":290,"chaos":16500},"lowest_stock":{"annul":5},"highest_stock":{"annul":60},"lowest_ratio":{"chaos":54},"highest_ratio":{"chaos":66}},
+
     {"league":"Mirage","market_id":"chaos|ancient-orb","volume_traded":{"chaos":9800,"ancient-orb":380},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":8000},"lowest_ratio":{"chaos":24},"highest_ratio":{"chaos":32}},
-    {"league":"Mirage","market_id":"ancient-orb|chaos","volume_traded":{"ancient-orb":350,"chaos":9200},"lowest_stock":{"ancient-orb":10},"highest_stock":{"ancient-orb":95},"lowest_ratio":{"ancient-orb":1},"highest_ratio":{"ancient-orb":1}},
+    {"league":"Mirage","market_id":"ancient-orb|chaos","volume_traded":{"ancient-orb":350,"chaos":9200},"lowest_stock":{"ancient-orb":10},"highest_stock":{"ancient-orb":95},"lowest_ratio":{"chaos":25},"highest_ratio":{"chaos":30}},
+
     {"league":"Mirage","market_id":"chaos|vaal","volume_traded":{"chaos":5200,"vaal":5500},"lowest_stock":{"chaos":200},"highest_stock":{"chaos":4000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
-    {"league":"Mirage","market_id":"vaal|chaos","volume_traded":{"vaal":5100,"chaos":4900},"lowest_stock":{"vaal":100},"highest_stock":{"vaal":2000},"lowest_ratio":{"vaal":1},"highest_ratio":{"vaal":1}},
+    {"league":"Mirage","market_id":"vaal|chaos","volume_traded":{"vaal":5100,"chaos":4900},"lowest_stock":{"vaal":100},"highest_stock":{"vaal":2000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
+
     {"league":"Mirage","market_id":"chaos|regal","volume_traded":{"chaos":4100,"regal":4300},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":5000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
-    {"league":"Mirage","market_id":"regal|chaos","volume_traded":{"regal":4000,"chaos":3900},"lowest_stock":{"regal":200},"highest_stock":{"regal":3000},"lowest_ratio":{"regal":1},"highest_ratio":{"regal":1}},
-    {"league":"Mirage","market_id":"chaos|gcp","volume_traded":{"chaos":7800,"gcp":8200},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":6000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
-    {"league":"Mirage","market_id":"gcp|chaos","volume_traded":{"gcp":7500,"chaos":7200},"lowest_stock":{"gcp":200},"highest_stock":{"gcp":5000},"lowest_ratio":{"gcp":1},"highest_ratio":{"gcp":1}},
+    {"league":"Mirage","market_id":"regal|chaos","volume_traded":{"regal":4000,"chaos":3900},"lowest_stock":{"regal":200},"highest_stock":{"regal":3000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
+
+    {"league":"Mirage","market_id":"chaos|gcp","volume_traded":{"chaos":7800,"gcp":8200},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":6000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":2}},
+    {"league":"Mirage","market_id":"gcp|chaos","volume_traded":{"gcp":7500,"chaos":7200},"lowest_stock":{"gcp":200},"highest_stock":{"gcp":5000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":2}},
+
     {"league":"Mirage","market_id":"alch|chaos","volume_traded":{"alch":38000,"chaos":11000},"lowest_stock":{"alch":2000},"highest_stock":{"alch":50000},"lowest_ratio":{"alch":3},"highest_ratio":{"alch":4}},
-    {"league":"Mirage","market_id":"chaos|alch","volume_traded":{"chaos":10500,"alch":36000},"lowest_stock":{"chaos":1000},"highest_stock":{"chaos":8000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
+    {"league":"Mirage","market_id":"chaos|alch","volume_traded":{"chaos":10500,"alch":36000},"lowest_stock":{"chaos":1000},"highest_stock":{"chaos":8000},"lowest_ratio":{"alch":3},"highest_ratio":{"alch":4}},
+
     {"league":"Mirage","market_id":"fusing|chaos","volume_traded":{"fusing":22000,"chaos":19000},"lowest_stock":{"fusing":500},"highest_stock":{"fusing":30000},"lowest_ratio":{"fusing":1},"highest_ratio":{"fusing":1}},
-    {"league":"Mirage","market_id":"chaos|fusing","volume_traded":{"chaos":18500,"fusing":21000},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":10000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
+    {"league":"Mirage","market_id":"chaos|fusing","volume_traded":{"chaos":18500,"fusing":21000},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":10000},"lowest_ratio":{"fusing":1},"highest_ratio":{"fusing":1}},
+
     {"league":"Mirage","market_id":"alt|chaos","volume_traded":{"alt":95000,"chaos":8500},"lowest_stock":{"alt":5000},"highest_stock":{"alt":200000},"lowest_ratio":{"alt":11},"highest_ratio":{"alt":14}},
-    {"league":"Mirage","market_id":"chaos|alt","volume_traded":{"chaos":8200,"alt":92000},"lowest_stock":{"chaos":1000},"highest_stock":{"chaos":15000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
+    {"league":"Mirage","market_id":"chaos|alt","volume_traded":{"chaos":8200,"alt":92000},"lowest_stock":{"chaos":1000},"highest_stock":{"chaos":15000},"lowest_ratio":{"alt":11},"highest_ratio":{"alt":14}},
+
     {"league":"Mirage","market_id":"chrome|chaos","volume_traded":{"chrome":85000,"chaos":5200},"lowest_stock":{"chrome":5000},"highest_stock":{"chrome":300000},"lowest_ratio":{"chrome":15},"highest_ratio":{"chrome":20}},
-    {"league":"Mirage","market_id":"chaos|chrome","volume_traded":{"chaos":5000,"chrome":82000},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":10000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
+    {"league":"Mirage","market_id":"chaos|chrome","volume_traded":{"chaos":5000,"chrome":82000},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":10000},"lowest_ratio":{"chrome":15},"highest_ratio":{"chrome":20}},
+
     {"league":"Mirage","market_id":"chisel|chaos","volume_traded":{"chisel":18000,"chaos":9500},"lowest_stock":{"chisel":1000},"highest_stock":{"chisel":40000},"lowest_ratio":{"chisel":2},"highest_ratio":{"chisel":2}},
-    {"league":"Mirage","market_id":"chaos|chisel","volume_traded":{"chaos":9200,"chisel":17500},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":8000},"lowest_ratio":{"chaos":1},"highest_ratio":{"chaos":1}},
+    {"league":"Mirage","market_id":"chaos|chisel","volume_traded":{"chaos":9200,"chisel":17500},"lowest_stock":{"chaos":500},"highest_stock":{"chaos":8000},"lowest_ratio":{"chisel":2},"highest_ratio":{"chisel":2}},
+
     {"league":"Mirage","market_id":"scour|chaos","volume_traded":{"scour":12000,"chaos":8000},"lowest_stock":{"scour":500},"highest_stock":{"scour":20000},"lowest_ratio":{"scour":1},"highest_ratio":{"scour":2}},
     {"league":"Mirage","market_id":"regret|chaos","volume_traded":{"regret":8500,"chaos":7200},"lowest_stock":{"regret":200},"highest_stock":{"regret":15000},"lowest_ratio":{"regret":1},"highest_ratio":{"regret":1}},
     {"league":"Mirage","market_id":"blessed|chaos","volume_traded":{"blessed":6200,"chaos":4100},"lowest_stock":{"blessed":200},"highest_stock":{"blessed":10000},"lowest_ratio":{"blessed":1},"highest_ratio":{"blessed":2}},
+
     {"league":"Mirage","market_id":"jewellers|chaos","volume_traded":{"jewellers":65000,"chaos":4200},"lowest_stock":{"jewellers":3000},"highest_stock":{"jewellers":200000},"lowest_ratio":{"jewellers":14},"highest_ratio":{"jewellers":18}},
-    {"league":"Mirage","market_id":"divine|exalted","volume_traded":{"divine":120,"exalted":250},"lowest_stock":{"divine":5},"highest_stock":{"divine":40},"lowest_ratio":{"divine":1},"highest_ratio":{"divine":3}},
     {"league":"Mirage","market_id":"transmute|chaos","volume_traded":{"transmute":120000,"chaos":5800},"lowest_stock":{"transmute":5000},"highest_stock":{"transmute":500000},"lowest_ratio":{"transmute":20},"highest_ratio":{"transmute":25}},
     {"league":"Mirage","market_id":"aug|chaos","volume_traded":{"aug":95000,"chaos":4500},"lowest_stock":{"aug":5000},"highest_stock":{"aug":400000},"lowest_ratio":{"aug":20},"highest_ratio":{"aug":25}},
+    {"league":"Mirage","market_id":"chance|chaos","volume_traded":{"chance":28000,"chaos":3200},"lowest_stock":{"chance":2000},"highest_stock":{"chance":80000},"lowest_ratio":{"chance":8},"highest_ratio":{"chance":10}},
+    {"league":"Mirage","market_id":"bauble|chaos","volume_traded":{"bauble":22000,"chaos":4200},"lowest_stock":{"bauble":1000},"highest_stock":{"bauble":50000},"lowest_ratio":{"bauble":5},"highest_ratio":{"bauble":6}},
+
     {"league":"Mirage","market_id":"wisdom|chaos","volume_traded":{"wisdom":180000,"chaos":3500},"lowest_stock":{"wisdom":10000},"highest_stock":{"wisdom":999999},"lowest_ratio":{"wisdom":50},"highest_ratio":{"wisdom":60}},
     {"league":"Mirage","market_id":"whetstone|chaos","volume_traded":{"whetstone":42000,"chaos":2800},"lowest_stock":{"whetstone":2000},"highest_stock":{"whetstone":100000},"lowest_ratio":{"whetstone":14},"highest_ratio":{"whetstone":18}},
-    {"league":"Mirage","market_id":"scrap|chaos","volume_traded":{"scrap":38000,"chaos":2400},"lowest_stock":{"scrap":2000},"highest_stock":{"scrap":80000},"lowest_ratio":{"scrap":14},"highest_ratio":{"scrap":18}},
-    {"league":"Mirage","market_id":"bauble|chaos","volume_traded":{"bauble":22000,"chaos":4200},"lowest_stock":{"bauble":1000},"highest_stock":{"bauble":50000},"lowest_ratio":{"bauble":5},"highest_ratio":{"bauble":6}},
-    {"league":"Mirage","market_id":"chance|chaos","volume_traded":{"chance":28000,"chaos":3200},"lowest_stock":{"chance":2000},"highest_stock":{"chance":80000},"lowest_ratio":{"chance":8},"highest_ratio":{"chance":10}}
+    {"league":"Mirage","market_id":"scrap|chaos","volume_traded":{"scrap":38000,"chaos":2400},"lowest_stock":{"scrap":2000},"highest_stock":{"scrap":80000},"lowest_ratio":{"scrap":14},"highest_ratio":{"scrap":18}}
   ]
 }

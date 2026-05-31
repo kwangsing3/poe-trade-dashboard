@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>POE Currency Exchange Dashboard</title>
-  <link rel="stylesheet" href="assets/style.css?v=3" />
+  <link rel="stylesheet" href="assets/style.css?v=4" />
 </head>
 <body>
   <div id="app">
@@ -25,17 +25,8 @@
 
     <div class="toolbar">
       <div class="filter-group">
-        <label>搜尋交易對</label>
-        <input type="text" id="pair-search" placeholder="例如：chaos, divine..." oninput="renderTable()" />
-      </div>
-      <div class="filter-group">
-        <label>排序</label>
-        <select id="sort-by" onchange="renderTable()">
-          <option value="volume_desc">交易量 (高→低)</option>
-          <option value="volume_asc">交易量 (低→高)</option>
-          <option value="pair_asc">交易對 (A→Z)</option>
-          <option value="ratio_asc">最低比率 (低→高)</option>
-        </select>
+        <label>搜尋通貨</label>
+        <input type="text" id="pair-search" placeholder="例如：混沌石、divine..." oninput="render()" />
       </div>
       <div class="filter-group">
         <label>自動刷新</label>
@@ -51,24 +42,10 @@
 
     <div id="stats-bar" class="stats-bar"></div>
 
-    <div class="table-wrapper">
-      <table id="market-table">
-        <thead>
-          <tr>
-            <th>交易對</th>
-            <th class="num">交易量 (賣)</th>
-            <th class="num">交易量 (買)</th>
-            <th class="num">最低庫存</th>
-            <th class="num">最高庫存</th>
-            <th class="num">最低比率</th>
-            <th class="num">最高比率</th>
-          </tr>
-        </thead>
-        <tbody id="market-body">
-          <tr><td colspan="7" class="loading">請先設定 API 憑證 (點右上角 ⚙)</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <main id="content">
+      <div id="hero-section"></div>
+      <div id="categories-section"></div>
+    </main>
 
     <footer>
       <p>資料來源：<a href="https://www.pathofexile.com/developer/docs/reference#currencyexchange" target="_blank">Path of Exile Currency Exchange API</a></p>
@@ -105,6 +82,6 @@
     </div>
   </div>
 
-  <script src="assets/app.js?v=3"></script>
+  <script src="assets/app.js?v=4"></script>
 </body>
 </html>
