@@ -5,15 +5,17 @@ const TOKEN_URL  = `${API_BASE}/oauth/token`;
 const CX_URL     = `${API_BASE}/currency-exchange`;
 const STORE_KEY  = 'poe_cx_creds';
 const TOKEN_KEY  = 'poe_cx_token';
-const MOCK_URL   = 'data/mock-currency-exchange.json';
-const STATIC_URL = 'poe_static.json';
-const POE_CDN    = 'https://www.pathofexile.com';
+const MOCK_URL        = 'data/mock-currency-exchange.json';
+const MOCK_PRICES_URL = 'data/mock-prices.json';
+const STATIC_URL      = 'poe_static.json';
+const POE_CDN         = 'https://www.pathofexile.com';
 
 let isDemoMode    = false;
 let currentLeague = 'Mirage';
 let activeTab     = 'Currency';
 let staticData    = null;   // poe_static.json result array
 let allMarkets    = [];
+let mockPrices    = null;   // { chaosPerDivine, prices: {id: chaosValue} }
 
 // ── Local images we downloaded ────────────────────────────────────────────────
 const LOCAL_IMGS = new Set([
@@ -151,6 +153,16 @@ async function loadStaticData() {
   }
 }
 
+async function loadMockPrices() {
+  try {
+    const res = await fetch(MOCK_PRICES_URL);
+    if (!res.ok) return;
+    mockPrices = await res.json();
+  } catch (e) {
+    console.warn('Could not load mock-prices.json:', e);
+  }
+}
+
 // ── OAuth token ───────────────────────────────────────────────────────────────
 async function getToken(force = false) {
   if (!force) {
@@ -199,7 +211,9 @@ async function loadData(manual = false) {
       const res  = await fetch(manual ? `${MOCK_URL}?t=${Date.now()}` : MOCK_URL);
       if (!res.ok) throw new Error(`無法載入 mock 資料 (HTTP ${res.status})`);
       json = await res.json();
+      if (!mockPrices) await loadMockPrices();
     } else {
+      mockPrices = null;
       json = await fetchCurrencyExchange(await getToken(manual));
     }
 
@@ -417,11 +431,37 @@ function renderGenericTab(el) {
 function renderGenericCard(entry) {
   const src  = imgSrc(entry);
   const name = CURRENCY_ZH[entry.id] || entry.text || entry.id;
+
+  let priceHtml = '';
+  if (mockPrices?.prices) {
+    const chaosVal = mockPrices.prices[entry.id];
+    if (chaosVal != null) {
+      const cpd       = mockPrices.chaosPerDivine || 200;
+      const divineVal = chaosVal / cpd;
+
+      // Chaos display
+      const chaosStr = chaosVal >= 1
+        ? `≈ ${chaosVal.toLocaleString(undefined, { maximumFractionDigits: 1 })} 混沌石`
+        : `≈ ${chaosVal.toFixed(2)} 混沌石`;
+
+      // Divine display (only show if ≥ 0.01 divine)
+      const divineStr = divineVal >= 0.01
+        ? `≈ ${divineVal.toLocaleString(undefined, { maximumFractionDigits: 3 })} 神聖石`
+        : '';
+
+      priceHtml = `<div class="generic-price">
+        <span class="gp-chaos">${chaosStr}</span>
+        ${divineStr ? `<span class="gp-divine">${divineStr}</span>` : ''}
+      </div>`;
+    }
+  }
+
   return `<div class="currency-card generic-card" title="${escHtml(entry.id)}">
     <div class="card-header">
       ${src ? `<img class="card-icon" src="${escHtml(src)}" alt="${escHtml(name)}" loading="lazy" onerror="this.style.display='none'">` : ''}
       <div class="card-name">${escHtml(name)}</div>
     </div>
+    ${priceHtml}
   </div>`;
 }
 

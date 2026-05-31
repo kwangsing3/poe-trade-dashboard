@@ -274,7 +274,26 @@ h1 { font-size: 22px; color: var(--gold); letter-spacing: 0.5px; font-weight: 60
   background: #1f1a14;
 }
 .generic-card {
-  padding: 10px 12px;
+  padding: 12px 14px;
+}
+
+/* Generic item price (mock chaos / divine values) */
+.generic-price {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 2px;
+}
+.gp-chaos {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ef9a9a;
+  font-variant-numeric: tabular-nums;
+}
+.gp-divine {
+  font-size: 11px;
+  color: #a5d6a7;
+  font-variant-numeric: tabular-nums;
 }
 
 .card-header {
