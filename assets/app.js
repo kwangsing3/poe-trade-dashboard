@@ -253,9 +253,11 @@ function renderHero() {
   heroEl.innerHTML = `
     <div class="hero-card">
       <div class="hero-title">
+        <img class="hero-icon" src="public/res/img/chaos.png" alt="混沌石" onerror="this.style.display='none'">
         <span class="hero-currency">混沌石</span>
         <span class="hero-divider">↔</span>
         <span class="hero-currency">神聖石</span>
+        <img class="hero-icon" src="public/res/img/divine.png" alt="神聖石" onerror="this.style.display='none'">
       </div>
       <div class="hero-rates">
         ${buyMin  != null ? `<div class="hero-rate-row"><span class="rate-dir">買入神聖石</span><span class="rate-val">${buyMin}${buyMax !== buyMin ? ' ~ ' + buyMax : ''}</span><span class="rate-unit">混沌石</span></div>` : ''}
@@ -316,7 +318,10 @@ function renderCurrencyCard(currency) {
   }
 
   return `<div class="currency-card" title="${escHtml(currency)}">
-    <div class="card-name">${escHtml(name)}</div>
+    <div class="card-header">
+      <img class="card-icon" src="public/res/img/${escHtml(currency)}.png" alt="${escHtml(name)}" onerror="this.style.display='none'">
+      <div class="card-name">${escHtml(name)}</div>
+    </div>
     ${priceHtml}
     <div class="card-vol">成交量 ${fmtK(vol)}</div>
   </div>`;
