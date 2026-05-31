@@ -262,18 +262,68 @@ function renderTabContent() {
   }
 }
 
+// ── Order book helper ─────────────────────────────────────────────────────────
+
+// For market_id "A|B": sell A to get B.
+// bid = chaos|X  → people offering chaos to buy X   (掛買 X)
+// ask = X|chaos  → people offering X to get chaos   (掛賣 X)
+function getOrderBook(currency) {
+  const bidPair = allMarkets.find(m => m.market_id === `chaos|${currency}`);
+  const askPair = allMarkets.find(m => m.market_id === `${currency}|chaos`);
+
+  function side(pair) {
+    if (!pair) return null;
+    const rKeys = Object.keys(pair.lowest_ratio  || {});
+    const sKeys = Object.keys(pair.lowest_stock  || {});
+    if (!rKeys.length) return null;
+    const pk = rKeys[0], sk = sKeys[0] || rKeys[0];
+    return {
+      priceMin:  pair.lowest_ratio[pk],
+      priceMax:  pair.highest_ratio?.[pk] ?? pair.lowest_ratio[pk],
+      stockMin:  pair.lowest_stock?.[sk]  ?? null,
+      stockMax:  pair.highest_stock?.[sk] ?? null,
+      priceUnit: pk,   // 'chaos'  →  price in chaos per 1 currency
+      stockUnit: sk,   // currency in which stock is counted
+    };
+  }
+
+  return {
+    bid: side(bidPair),
+    ask: side(askPair),
+    vol: (bidPair ? sumVolume(bidPair) : 0) + (askPair ? sumVolume(askPair) : 0),
+  };
+}
+
+function obRowHtml(side, tag, cls) {
+  if (!side) return '';
+  const isChaosPrice = side.priceUnit === 'chaos';
+  const pMin = fmtN(side.priceMin), pMax = fmtN(side.priceMax);
+  const priceStr = side.priceMin === side.priceMax ? pMin : `${pMin} ~ ${pMax}`;
+  const priceLabel = isChaosPrice
+    ? `${priceStr} <em>混沌石</em>`
+    : `${priceStr} <em>${escHtml(currencyName(side.priceUnit))} = 1 混沌石</em>`;
+
+  let stockLabel = '';
+  if (side.stockMin != null) {
+    const sMin = fmtK(side.stockMin), sMax = fmtK(side.stockMax ?? side.stockMin);
+    const stockStr = side.stockMin === side.stockMax ? sMin : `${sMin} ~ ${sMax}`;
+    stockLabel = `<span class="ob-stock">${stockStr} <em>${escHtml(currencyName(side.stockUnit))}</em></span>`;
+  }
+
+  return `<div class="ob-row ${cls}">
+    <span class="ob-tag">${tag}</span>
+    <div class="ob-vals">
+      <span class="ob-price">${priceLabel}</span>
+      ${stockLabel}
+    </div>
+  </div>`;
+}
+
 // ── Currency tab ──────────────────────────────────────────────────────────────
 function renderHero() {
   const heroEl = document.getElementById('hero-section');
-  const buy    = allMarkets.find(m => m.market_id === 'chaos|divine');
-  const sell   = allMarkets.find(m => m.market_id === 'divine|chaos');
-  if (!buy && !sell) { heroEl.innerHTML = ''; return; }
-
-  const buyMin  = buy  ? getVal(buy.lowest_ratio,  'chaos') : null;
-  const buyMax  = buy  ? getVal(buy.highest_ratio, 'chaos') : null;
-  const sellMin = sell ? getVal(sell.lowest_ratio,  'chaos') : null;
-  const sellMax = sell ? getVal(sell.highest_ratio, 'chaos') : null;
-  const totalVol = (buy ? sumVolume(buy) : 0) + (sell ? sumVolume(sell) : 0);
+  const ob = getOrderBook('divine');
+  if (!ob.bid && !ob.ask) { heroEl.innerHTML = ''; return; }
 
   heroEl.innerHTML = `
     <div class="hero-card">
@@ -284,11 +334,11 @@ function renderHero() {
         <span class="hero-currency">神聖石</span>
         <img class="hero-icon" src="public/res/img/divine.png" alt="神聖石" onerror="this.style.display='none'">
       </div>
-      <div class="hero-rates">
-        ${buyMin  != null ? `<div class="hero-rate-row"><span class="rate-dir">買入神聖石</span><span class="rate-val">${buyMin}${buyMax !== buyMin ? ' ~ ' + buyMax : ''}</span><span class="rate-unit">混沌石</span></div>` : ''}
-        ${sellMin != null ? `<div class="hero-rate-row"><span class="rate-dir">賣出神聖石</span><span class="rate-val">${sellMin}${sellMax !== sellMin ? ' ~ ' + sellMax : ''}</span><span class="rate-unit">混沌石</span></div>` : ''}
+      <div class="hero-ob">
+        ${obRowHtml(ob.ask, '掛賣', 'ask')}
+        ${obRowHtml(ob.bid, '掛買', 'bid')}
       </div>
-      <div class="hero-vol">成交量 ${totalVol.toLocaleString()}</div>
+      <div class="hero-vol">成交量 ${ob.vol.toLocaleString()}</div>
     </div>`;
 }
 
@@ -327,30 +377,23 @@ function renderCurrencyTab(el) {
 }
 
 function renderCurrencyCard(currency, catEntry) {
-  const price = getChaosPrice(currency);
-  if (!price) return null;
+  const ob = getOrderBook(currency);
+  if (!ob.bid && !ob.ask) return null;
 
   const entry = catEntry?.entries.find(e => e.id === currency);
   const src   = entry ? imgSrc(entry) : `public/res/img/${currency}.png`;
   const name  = currencyName(currency);
-  const vol   = getCurrencyVolume(currency);
-
-  let priceHtml;
-  if (price.type === 'per-unit') {
-    const range = price.min === price.max ? `${price.min}` : `${price.min} ~ ${price.max}`;
-    priceHtml = `<div class="card-price per-unit"><span class="price-eq">≈</span><span class="price-val">${range}</span><span class="price-unit">混沌石</span></div>`;
-  } else {
-    const range = price.min === price.max ? `${price.min}` : `${price.min} ~ ${price.max}`;
-    priceHtml = `<div class="card-price bulk"><span class="price-val">${range}</span><span class="price-unit">枚 = 1 混沌石</span></div>`;
-  }
 
   return `<div class="currency-card" title="${escHtml(currency)}">
     <div class="card-header">
       <img class="card-icon" src="${escHtml(src)}" alt="${escHtml(name)}" onerror="this.style.display='none'">
       <div class="card-name">${escHtml(name)}</div>
     </div>
-    ${priceHtml}
-    <div class="card-vol">成交量 ${fmtK(vol)}</div>
+    <div class="orderbook">
+      ${obRowHtml(ob.ask, '掛賣', 'ask')}
+      ${obRowHtml(ob.bid, '掛買', 'bid')}
+    </div>
+    <div class="card-vol">成交量 ${fmtK(ob.vol)}</div>
   </div>`;
 }
 
@@ -400,24 +443,7 @@ function stat(label, value) {
   return `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div></div>`;
 }
 
-// ── Price helpers ─────────────────────────────────────────────────────────────
-function getChaosPrice(currency) {
-  const pair = allMarkets.find(m => m.market_id === `chaos|${currency}` || m.market_id === `${currency}|chaos`);
-  if (!pair) return null;
-  const chaosMin = getVal(pair.lowest_ratio,  'chaos');
-  const chaosMax = getVal(pair.highest_ratio, 'chaos');
-  if (chaosMin != null) return { type: 'per-unit', min: chaosMin, max: chaosMax ?? chaosMin };
-  const bulkMin = getVal(pair.lowest_ratio,  currency);
-  const bulkMax = getVal(pair.highest_ratio, currency);
-  if (bulkMin != null) return { type: 'bulk', min: bulkMin, max: bulkMax ?? bulkMin };
-  return null;
-}
-
-function getCurrencyVolume(currency) {
-  return allMarkets
-    .filter(m => { const [s,b] = m.market_id.split('|'); return s===currency||b===currency; })
-    .reduce((s, m) => s + sumVolume(m), 0);
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
 let refreshTimer = null, countdownTimer = null, nextRefreshAt = null;
@@ -474,6 +500,11 @@ function clearCredentials() { clearCredsAndToken(); isDemoMode = true; closeSett
 function useDemo()          { isDemoMode = true; closeSettings(); loadData(); }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtN(v) {
+  if (v == null) return '—';
+  return Number(v).toLocaleString();
+}
+
 function getVal(obj, key) {
   if (!obj) return null;
   if (key in obj) return obj[key];

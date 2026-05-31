@@ -190,10 +190,10 @@ h1 { font-size: 22px; color: var(--gold); letter-spacing: 0.5px; font-weight: 60
   background: linear-gradient(135deg, #1e1600 0%, #1a1a1a 60%);
   border: 1px solid var(--gold);
   border-radius: 10px;
-  padding: 28px 36px;
+  padding: 24px 32px;
   display: flex;
   align-items: center;
-  gap: 48px;
+  gap: 40px;
   box-shadow: 0 0 32px var(--hero-glow);
   flex-wrap: wrap;
 }
@@ -201,7 +201,7 @@ h1 { font-size: 22px; color: var(--gold); letter-spacing: 0.5px; font-weight: 60
 .hero-title {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-shrink: 0;
 }
 .hero-icon {
@@ -210,43 +210,21 @@ h1 { font-size: 22px; color: var(--gold); letter-spacing: 0.5px; font-weight: 60
   object-fit: contain;
   image-rendering: pixelated;
 }
-
 .hero-currency {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--gold);
 }
 .hero-divider {
-  font-size: 22px;
+  font-size: 20px;
   color: var(--accent-light);
 }
 
-.hero-rates {
+.hero-ob {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex: 1;
-}
-.hero-rate-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-.rate-dir {
-  font-size: 12px;
-  color: var(--text-dim);
-  min-width: 76px;
-}
-.rate-val {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--gold);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-.rate-unit {
-  font-size: 13px;
-  color: var(--text-dim);
+  gap: 5px;
 }
 
 .hero-vol {
@@ -273,7 +251,7 @@ h1 { font-size: 22px; color: var(--gold); letter-spacing: 0.5px; font-weight: 60
 /* ── Card grid ── */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 10px;
 }
 .card-grid.generic {
@@ -322,20 +300,67 @@ h1 { font-size: 22px; color: var(--gold); letter-spacing: 0.5px; font-weight: 60
   text-overflow: ellipsis;
 }
 
-.card-price {
+/* ── Order book (currency cards + hero) ── */
+.orderbook {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
   gap: 4px;
-  flex-wrap: wrap;
+  margin: 4px 0 2px;
 }
-.card-price.per-unit .price-eq { font-size: 13px; color: var(--text-dim); }
-.card-price.per-unit .price-val { font-size: 20px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; }
-.card-price.per-unit .price-unit { font-size: 11px; color: var(--text-dim); }
 
-.card-price.bulk .price-val { font-size: 20px; font-weight: 700; color: var(--text-dim); font-variant-numeric: tabular-nums; line-height: 1; }
-.card-price.bulk .price-unit { font-size: 11px; color: var(--text-dim); }
+.ob-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+}
 
-.card-vol { font-size: 11px; color: var(--text-dim); }
+.ob-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+}
+.ob-row.ask .ob-tag { background: rgba(229,57,53,0.18); color: #ef5350; }
+.ob-row.bid .ob-tag { background: rgba(76,175,80,0.18); color: #66bb6a; }
+
+.ob-vals {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ob-price {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text);
+}
+.ob-row.ask .ob-price { color: #ef9a9a; }
+.ob-row.bid .ob-price { color: #a5d6a7; }
+
+.ob-price em, .ob-stock em {
+  font-style: normal;
+  color: var(--text-dim);
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.ob-stock {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hero card order book — larger text */
+.hero-ob .ob-tag   { font-size: 11px; padding: 2px 7px; }
+.hero-ob .ob-price { font-size: 16px; }
+.hero-ob .ob-price em { font-size: 12px; }
+.hero-ob .ob-stock { font-size: 12px; }
+
+.card-vol { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
 /* ── Error / empty states ── */
 .error-msg {
@@ -407,6 +432,6 @@ footer a:hover { text-decoration: underline; }
   h1 { font-size: 17px; }
   .toolbar { flex-direction: column; }
   .hero-card { padding: 20px; gap: 20px; }
-  .rate-val { font-size: 20px; }
-  .card-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .hero-ob .ob-price { font-size: 14px; }
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 }
