@@ -25,7 +25,7 @@ Path of Exile 通貨交易所即時儀表板，部署於 GitHub Pages。
 
 ### 真實資料模式
 
-1. 前往 [pathofexile.com/developer](https://www.pathofexile.com/developer/docs/) 申請 API 應用
+1. 前往 [pathofexile.tw/developer](https://www.pathofexile.tw/developer/docs/) 申請 API 應用
    - 類型：**Confidential Client**
    - Scope：`service:cxapi`
 2. 取得 `client_id` 與 `client_secret`
@@ -62,8 +62,8 @@ Path of Exile 通貨交易所即時儀表板，部署於 GitHub Pages。
 
 ## 資料來源
 
-- **交易所資料**：[Path of Exile Currency Exchange API](https://www.pathofexile.com/developer/docs/reference#currencyexchange)（每小時更新，有 5 分鐘延遲）
-- **品項靜態資料**：[POE Trade Static API](https://www.pathofexile.com/api/trade/data/static)
+- **交易所資料**：[Path of Exile Currency Exchange API](https://www.pathofexile.tw/developer/docs/reference#currencyexchange)（每小時更新，有 5 分鐘延遲）
+- **品項靜態資料**：[POE Trade Static API](https://www.pathofexile.tw/api/trade/data/static)
 - **通貨圖示**：web.poecdn.com（Grinding Gear Games 官方 CDN）
 
 ---

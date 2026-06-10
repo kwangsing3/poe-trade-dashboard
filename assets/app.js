@@ -1,21 +1,17 @@
 'use strict';
 
-const API_BASE   = 'https://api.pathofexile.com';
-const TOKEN_URL  = `${API_BASE}/oauth/token`;
-const CX_URL     = `${API_BASE}/currency-exchange`;
-const STORE_KEY  = 'poe_cx_creds';
-const TOKEN_KEY  = 'poe_cx_token';
 const MOCK_URL        = 'data/mock-currency-exchange.json';
 const MOCK_PRICES_URL = 'data/mock-prices.json';
 const STATIC_URL      = 'poe_static.json';
-const POE_CDN         = 'https://www.pathofexile.com';
+const POE_CDN         = 'https://www.pathofexile.tw';
+const CACHED_URL      = 'data/currency-exchange.json';
 
 let isDemoMode    = false;
 let currentLeague = 'Mirage';
 let activeTab     = 'Currency';
-let staticData    = null;   // poe_static.json result array
+let staticData    = null;
 let allMarkets    = [];
-let mockPrices    = null;   // { chaosPerDivine, prices: {id: chaosValue} }
+let mockPrices    = null;
 
 // ── Local images we downloaded ────────────────────────────────────────────────
 const LOCAL_IMGS = new Set([
@@ -112,27 +108,19 @@ const CURRENCY_GROUPS = [
   { id: 'misc',  label: '消耗品',   currencies: ['wisdom','portal','whetstone','scrap','engineers'] },
 ];
 
-// ── Credentials ───────────────────────────────────────────────────────────────
-function getCreds() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || null; } catch { return null; }
-}
-function saveCreds(id, secret) {
-  localStorage.setItem(STORE_KEY, JSON.stringify({ clientId: id, clientSecret: secret }));
-}
-function clearCredsAndToken() {
-  localStorage.removeItem(STORE_KEY);
-  localStorage.removeItem(TOKEN_KEY);
-}
-
 // ── League detection ──────────────────────────────────────────────────────────
 async function fetchCurrentLeague() {
   try {
-    const res = await fetch(`${API_BASE}/leagues?type=main&realm=pc&limit=20`);
+    const res = await fetch('/api/leagues');
     if (!res.ok) return;
     const json = await res.json();
     const leagues = Array.isArray(json) ? json : (json.result || json.leagues || []);
-    const PERMANENT = new Set(['Standard','Hardcore','Solo Self-Found','Hardcore Solo Self-Found',
-      'Ruthless','Hardcore Ruthless','SSF Ruthless','Hardcore SSF Ruthless']);
+    const PERMANENT = new Set([
+      '標準模式','專家模式','標準「自力」','專家「自力」',
+      '殘暴','殘暴（專家）','殘暴「自力」','殘暴（專家）「自力」',
+      'Standard','Hardcore','Solo Self-Found','Hardcore Solo Self-Found',
+      'Ruthless','Hardcore Ruthless','SSF Ruthless','Hardcore SSF Ruthless',
+    ]);
     const seasonal = leagues.find(l => (l.category?.current === true) && !PERMANENT.has(l.id));
     if (seasonal) {
       currentLeague = seasonal.id;
@@ -163,39 +151,6 @@ async function loadMockPrices() {
   }
 }
 
-// ── OAuth token ───────────────────────────────────────────────────────────────
-async function getToken(force = false) {
-  if (!force) {
-    const cached = localStorage.getItem(TOKEN_KEY);
-    if (cached) return cached;
-  }
-  const creds = getCreds();
-  if (!creds) throw new Error('未設定 API 憑證');
-  const body = new URLSearchParams({
-    client_id: creds.clientId, client_secret: creds.clientSecret,
-    grant_type: 'client_credentials', scope: 'service:cxapi',
-  });
-  const res  = await fetch(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
-  const json = await res.json();
-  if (!res.ok || !json.access_token) throw new Error(`取得 Token 失敗：${json.error_description || json.error || `HTTP ${res.status}`}`);
-  localStorage.setItem(TOKEN_KEY, json.access_token);
-  return json.access_token;
-}
-
-// ── Exchange data fetch ───────────────────────────────────────────────────────
-async function fetchCurrencyExchange(token) {
-  const res = await fetch(CX_URL, { headers: { 'Authorization': `Bearer ${token}`, 'User-Agent': 'poe-trade-dashboard/1.0' } });
-  if (res.status === 401) {
-    localStorage.removeItem(TOKEN_KEY);
-    return fetchCurrencyExchange(await getToken(true));
-  }
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`API 回傳 HTTP ${res.status}${text ? '：' + text.slice(0, 120) : ''}`);
-  }
-  return res.json();
-}
-
 // ── Main load ─────────────────────────────────────────────────────────────────
 async function loadData(manual = false) {
   const btn       = document.getElementById('refresh-btn');
@@ -206,15 +161,21 @@ async function loadData(manual = false) {
 
   try {
     let json;
-    if (isDemoMode || !getCreds()) {
-      isDemoMode = true;
-      const res  = await fetch(manual ? `${MOCK_URL}?t=${Date.now()}` : MOCK_URL);
+
+    if (isDemoMode) {
+      const url  = manual ? `${MOCK_URL}?t=${Date.now()}` : MOCK_URL;
+      const res  = await fetch(url);
       if (!res.ok) throw new Error(`無法載入 mock 資料 (HTTP ${res.status})`);
       json = await res.json();
       if (!mockPrices) await loadMockPrices();
     } else {
       mockPrices = null;
-      json = await fetchCurrencyExchange(await getToken(manual));
+      const res  = await fetch(manual ? `/api/exchange?t=${Date.now()}` : '/api/exchange');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(`API 錯誤 ${res.status}：${body.detail || res.statusText}`);
+      }
+      json = await res.json();
     }
 
     allMarkets = (Array.isArray(json.markets) ? json.markets : [])
@@ -253,10 +214,8 @@ function renderTabs() {
 
 function switchTab(tabId) {
   activeTab = tabId;
-  // Update active class
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelector(`.tab-btn[onclick="switchTab('${tabId}')"]`)?.classList.add('active');
-  // Clear search
   document.getElementById('pair-search').value = '';
   renderTabContent();
 }
@@ -278,10 +237,6 @@ function renderTabContent() {
 }
 
 // ── Order book helper ─────────────────────────────────────────────────────────
-
-// For market_id "A|B": sell A to get B.
-// bid = chaos|X  → people offering chaos to buy X   (掛買 X)
-// ask = X|chaos  → people offering X to get chaos   (掛賣 X)
 function getOrderBook(currency) {
   const bidPair = allMarkets.find(m => m.market_id === `chaos|${currency}`);
   const askPair = allMarkets.find(m => m.market_id === `${currency}|chaos`);
@@ -297,8 +252,8 @@ function getOrderBook(currency) {
       priceMax:  pair.highest_ratio?.[pk] ?? pair.lowest_ratio[pk],
       stockMin:  pair.lowest_stock?.[sk]  ?? null,
       stockMax:  pair.highest_stock?.[sk] ?? null,
-      priceUnit: pk,   // 'chaos'  →  price in chaos per 1 currency
-      stockUnit: sk,   // currency in which stock is counted
+      priceUnit: pk,
+      stockUnit: sk,
     };
   }
 
@@ -362,7 +317,6 @@ function renderCurrencyTab(el) {
   const catEntry = staticData?.find(c => c.id === 'Currency');
   let html = '';
 
-  // Known groups with exchange data
   for (const grp of CURRENCY_GROUPS) {
     const cards = grp.currencies
       .filter(c => !search || c.includes(search) || currencyName(c).includes(search))
@@ -372,7 +326,6 @@ function renderCurrencyTab(el) {
     html += `<section class="category-section"><h2 class="category-title">${grp.label}</h2><div class="card-grid">${cards.join('')}</div></section>`;
   }
 
-  // Other currencies from poe_static.json not in our groups
   const knownIds = new Set(CURRENCY_GROUPS.flatMap(g => g.currencies).concat(['chaos','divine']));
   if (catEntry) {
     const others = catEntry.entries.filter(e => {
@@ -422,9 +375,7 @@ function renderGenericTab(el) {
   const search = (document.getElementById('pair-search')?.value ?? '').toLowerCase().trim();
   if (!cat) { el.innerHTML = '<p class="empty-msg">分類資料載入中...</p>'; return; }
 
-  // Filter out separators and entries without text
   const valid = cat.entries.filter(e => e.id !== 'sep' && e.text);
-
   const entries = valid.filter(e => {
     if (!search) return true;
     const zh = itemName(e.id, e.text).toLowerCase();
@@ -447,15 +398,12 @@ function renderGenericCard(entry) {
     if (chaosVal != null) {
       const cpd       = mockPrices.chaosPerDivine || 200;
       const divineVal = chaosVal / cpd;
-
       const chaosStr  = chaosVal >= 1
         ? chaosVal.toLocaleString(undefined, { maximumFractionDigits: 1 })
         : chaosVal.toFixed(2);
-
       const divineStr = divineVal >= 1
         ? divineVal.toLocaleString(undefined, { maximumFractionDigits: 2 })
         : divineVal.toFixed(3);
-
       priceHtml = `<div class="generic-price">
         <span class="gp-chaos">≈ ${chaosStr} <em>混沌石</em></span>
         <span class="gp-divine">≈ ${divineStr} <em>神聖石</em></span>
@@ -490,20 +438,18 @@ function stat(label, value) {
   return `<div class="stat-card"><div class="label">${label}</div><div class="value">${value}</div></div>`;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
 let refreshTimer = null, countdownTimer = null, nextRefreshAt = null;
 
 function scheduleAutoRefresh() {
   clearTimeout(refreshTimer);
   clearInterval(countdownTimer);
-  const minutes    = parseInt(document.getElementById('refresh-interval')?.value ?? '0', 10);
+  const minutes     = parseInt(document.getElementById('refresh-interval')?.value ?? '0', 10);
   const countdownEl = document.getElementById('countdown');
   if (!minutes) { if (countdownEl) countdownEl.textContent = ''; return; }
   const ms = minutes * 60 * 1000;
-  nextRefreshAt = Date.now() + ms;
-  refreshTimer  = setTimeout(() => loadData(false), ms);
+  nextRefreshAt  = Date.now() + ms;
+  refreshTimer   = setTimeout(() => loadData(false), ms);
   countdownTimer = setInterval(() => {
     const rem = Math.max(0, nextRefreshAt - Date.now());
     const m   = Math.floor(rem / 60000);
@@ -516,47 +462,21 @@ document.getElementById('refresh-interval').addEventListener('change', scheduleA
 
 // ── Settings modal ────────────────────────────────────────────────────────────
 function openSettings() {
-  const creds = getCreds();
-  if (creds) {
-    document.getElementById('input-client-id').value     = creds.clientId;
-    document.getElementById('input-client-secret').value = creds.clientSecret;
-  }
-  document.getElementById('settings-error').classList.add('hidden');
   document.getElementById('settings-overlay').classList.remove('hidden');
 }
-function closeSettings() { document.getElementById('settings-overlay').classList.add('hidden'); }
-function closeSettingsOnOverlay(e) { if (e.target === document.getElementById('settings-overlay')) closeSettings(); }
-
-function saveCredentials() {
-  const clientId     = document.getElementById('input-client-id').value.trim();
-  const clientSecret = document.getElementById('input-client-secret').value.trim();
-  const errEl        = document.getElementById('settings-error');
-  if (!clientId || !clientSecret) {
-    errEl.textContent = '請填入 Client ID 和 Client Secret';
-    errEl.classList.remove('hidden');
-    return;
-  }
-  saveCreds(clientId, clientSecret);
-  localStorage.removeItem(TOKEN_KEY);
-  isDemoMode = false;
-  closeSettings();
-  loadData(true);
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.add('hidden');
 }
-
-function clearCredentials() { clearCredsAndToken(); isDemoMode = true; closeSettings(); loadData(); }
-function useDemo()          { isDemoMode = true; closeSettings(); loadData(); }
+function closeSettingsOnOverlay(e) {
+  if (e.target === document.getElementById('settings-overlay')) closeSettings();
+}
+function useDemo()     { isDemoMode = true;  closeSettings(); loadData(); }
+function useRealData() { isDemoMode = false; closeSettings(); loadData(); }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtN(v) {
   if (v == null) return '—';
   return Number(v).toLocaleString();
-}
-
-function getVal(obj, key) {
-  if (!obj) return null;
-  if (key in obj) return obj[key];
-  const k = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
-  return k !== undefined ? obj[k] : null;
 }
 function sumVolume(m) {
   return Object.values(m.volume_traded || {}).reduce((s, v) => s + v, 0);
@@ -571,8 +491,6 @@ function escHtml(s) {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-if (!getCreds()) isDemoMode = true;
-
 Promise.all([fetchCurrentLeague(), loadStaticData()]).then(() => {
   renderTabs();
   loadData();

@@ -22,7 +22,7 @@ jobs:
       - name: Get OAuth token
         id: auth
         run: |
-          RESPONSE=$(curl -s -X POST "https://api.pathofexile.com/oauth/token" \
+          RESPONSE=$(curl -s -X POST "https://api.pathofexile.tw/oauth/token" \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "client_id=${{ secrets.POE_CLIENT_ID }}&client_secret=${{ secrets.POE_CLIENT_SECRET }}&grant_type=client_credentials&scope=service:cxapi")
 
@@ -43,9 +43,9 @@ jobs:
 
           # Build URL: base endpoint (PoE1 PC, no realm param)
           if [ -n "$CHANGE_ID" ]; then
-            URL="https://api.pathofexile.com/currency-exchange/${CHANGE_ID}"
+            URL="https://api.pathofexile.tw/currency-exchange/${CHANGE_ID}"
           else
-            URL="https://api.pathofexile.com/currency-exchange"
+            URL="https://api.pathofexile.tw/currency-exchange"
           fi
 
           echo "Fetching: $URL"

@@ -39,10 +39,10 @@ poe-trade-dashboard/
 
 ```
 瀏覽器啟動
-  → fetchCurrentLeague()     GET api.pathofexile.com/leagues  （無需 auth）
+  → fetchCurrentLeague()     GET api.pathofexile.tw/leagues  （無需 auth）
   → loadStaticData()         fetch poe_static.json            （本地靜態檔）
-  → getToken()               POST api.pathofexile.com/oauth/token  （client_credentials）
-  → fetchCurrencyExchange()  GET api.pathofexile.com/currency-exchange
+  → getToken()               POST api.pathofexile.tw/oauth/token  （client_credentials）
+  → fetchCurrencyExchange()  GET api.pathofexile.tw/currency-exchange
   → allMarkets.filter(league === currentLeague)
   → render()
 ```
@@ -51,7 +51,7 @@ poe-trade-dashboard/
 
 ```
 瀏覽器啟動
-  → fetchCurrentLeague()     GET api.pathofexile.com/leagues
+  → fetchCurrentLeague()     GET api.pathofexile.tw/leagues
   → loadStaticData()         fetch poe_static.json
   → fetch data/mock-currency-exchange.json
   → render()
@@ -92,7 +92,7 @@ poe-trade-dashboard/
 ## 通貨圖示
 
 - 本地圖示：`public/res/img/{id}.png`（28 種常見通貨）
-- 其他品項：使用 `poe_static.json` 中的 `/gen/image/...` 路徑，從 `www.pathofexile.com` CDN 載入
+- 其他品項：使用 `poe_static.json` 中的 `/gen/image/...` 路徑，從 `www.pathofexile.tw` CDN 載入
 - `scripts/download-imgs.py` 記錄了正確的 CDN 檔名對應，可重新執行下載
 
 **已知 CDN 檔名陷阱：**
@@ -106,7 +106,7 @@ poe-trade-dashboard/
 
 ## API 憑證設定
 
-1. 前往 https://www.pathofexile.com/developer/docs/ 申請 **Confidential Client**，scope 選 `service:cxapi`
+1. 前往 https://www.pathofexile.tw/developer/docs/ 申請 **Confidential Client**，scope 選 `service:cxapi`
 2. 取得 `client_id` 與 `client_secret`
 3. 在頁面右上角 ⚙ 設定面板輸入憑證 → 儲存於 `localStorage`（不上傳至任何伺服器）
 4. Token 自動快取於 `localStorage`，401 時重新申請

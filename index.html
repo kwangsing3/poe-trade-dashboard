@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>POE Trade Dashboard</title>
-  <link rel="stylesheet" href="assets/style.css?v=8" />
+  <link rel="stylesheet" href="assets/style.css?v=10" />
 </head>
 <body>
   <div id="app">
@@ -53,7 +53,7 @@
     </main>
 
     <footer>
-      <p>資料來源：<a href="https://www.pathofexile.com/developer/docs/reference#currencyexchange" target="_blank">Path of Exile Currency Exchange API</a></p>
+      <p>資料來源：<a href="https://pathofexile.tw/developer/docs/reference#currencyexchange" target="_blank">Path of Exile TW Currency Exchange API</a></p>
     </footer>
   </div>
 
@@ -61,33 +61,23 @@
   <div id="settings-overlay" class="modal-overlay hidden" onclick="closeSettingsOnOverlay(event)">
     <div class="modal">
       <div class="modal-header">
-        <h2>API 憑證設定</h2>
+        <h2>資料來源</h2>
         <button class="modal-close" onclick="closeSettings()">✕</button>
       </div>
       <div class="modal-body">
         <p class="modal-hint">
-          憑證儲存於瀏覽器 localStorage，不會傳送至任何第三方。<br/>
-          請至 <a href="https://www.pathofexile.com/developer/docs/" target="_blank">pathofexile.com/developer</a> 申請 Confidential Client (scope: <code>service:cxapi</code>)。
+          即時資料由本地 Python 後端（<code>server.py</code>）透過 pathofexile.tw API 取得。<br/>
+          若後端未啟動，請切換為 Demo 模式。
         </p>
-        <div class="form-group">
-          <label>Client ID</label>
-          <input type="text" id="input-client-id" placeholder="your_client_id" autocomplete="off" />
-        </div>
-        <div class="form-group">
-          <label>Client Secret</label>
-          <input type="password" id="input-client-secret" placeholder="your_client_secret" autocomplete="off" />
-        </div>
-        <div id="settings-error" class="settings-error hidden"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-ghost" onclick="useDemo()">Demo 模式</button>
-        <button class="btn-danger" onclick="clearCredentials()">清除憑證</button>
-        <button class="btn-primary" onclick="saveCredentials()">儲存並載入</button>
+        <button class="btn-ghost"    onclick="useDemo()">Demo 模式</button>
+        <button class="btn-primary"  onclick="useRealData()">即時資料</button>
       </div>
     </div>
   </div>
 
   <script src="assets/zh-names.js?v=1"></script>
-  <script src="assets/app.js?v=8"></script>
+  <script src="assets/app.js?v=10"></script>
 </body>
 </html>
