@@ -457,3 +457,39 @@ footer a:hover { text-decoration: underline; }
   .hero-ob .ob-price { font-size: 14px; }
   .card-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 }
+
+/* ── Arbitrage section ─────────────────────────────────────────── */
+.arb-section { margin-bottom: 24px; }
+.arb-table {
+  width: 100%;
+  max-width: 560px;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.arb-table th, .arb-table td {
+  padding: 7px 14px;
+  text-align: right;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--border);
+}
+.arb-table th { color: var(--text-dim); font-weight: 600; font-size: 11px; }
+.arb-table th:first-child, .arb-table td:first-child { text-align: left; }
+.arb-name   { font-weight: 600; }
+.arb-buy    { color: #a5d6a7; }
+.arb-sell   { color: #ef9a9a; }
+.arb-profit { color: var(--accent-light); font-weight: 700; }
+.arb-hint   { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+
+/* ── Order book price ladder (五檔價位) ─────────────────────────── */
+.ob-level {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.ob-level .ob-stock { white-space: nowrap; }

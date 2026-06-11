@@ -17,7 +17,7 @@ const env = Object.fromEntries(
 
 const CLIENT_ID     = env.CLIENT_ID;
 const CLIENT_SECRET = env.CLIENT_SECRET;
-const API_BASE      = 'https://pathofexile.tw';
+const API_BASE      = 'https://pathofexile.tw/api';
 
 console.log(`\n=== POE Trade Dashboard — API Debug ===`);
 console.log(`Client ID: ${CLIENT_ID}`);
@@ -27,7 +27,7 @@ console.log(`Client Secret: ${CLIENT_SECRET.slice(0,4)}${'*'.repeat(CLIENT_SECRE
 console.log('▶ Step 1: Fetching current league...');
 let currentLeague = 'Standard';
 try {
-  const res = await fetch(`${API_BASE}/api/leagues?type=main&realm=pc&limit=20`);
+  const res = await fetch(`${API_BASE}/leagues?type=main&realm=pc&limit=20`);
   console.log(`  HTTP ${res.status} ${res.statusText}`);
   if (res.ok) {
     const json = await res.json();
@@ -57,7 +57,7 @@ try {
     grant_type:    'client_credentials',
     scope:         'service:cxapi',
   });
-  const res = await fetch(`${API_BASE}/oauth/token`, {  // no /api prefix for token
+  const res = await fetch('https://pathofexile.tw/oauth/token', {  // oauth is NOT under /api
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -79,7 +79,7 @@ try {
 console.log('\n▶ Step 3: Fetching currency-exchange data...');
 let markets = [];
 try {
-  const res = await fetch(`${API_BASE}/api/currency-exchange`, {
+  const res = await fetch(`${API_BASE}/currency-exchange`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'User-Agent': 'poe-trade-dashboard/debug',
