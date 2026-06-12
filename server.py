@@ -50,6 +50,26 @@ def _budget_left(now: float) -> int:
         _upstream_calls.pop(0)
     return UPSTREAM_BUDGET - len(_upstream_calls)
 
+def _sync_rate_limit_headers(headers, now: float) -> None:
+    """x-rate-limit-client-state: used:window:penalty — 用 API 回傳的實際狀態同步本地計數。"""
+    global _upstream_calls, _rate_limit_until
+    state = headers.get('x-rate-limit-client-state', '')
+    if not state:
+        return
+    try:
+        parts = state.split(':')
+        used    = int(parts[0])
+        penalty = int(parts[2]) if len(parts) >= 3 else 0
+    except (ValueError, IndexError):
+        return
+    # 以 server 回報的 used 數重建滾動視窗（時間戳密集集中在最近 1ms 內，
+    # 只是為了讓 _budget_left() 能正確計算剩餘配額）
+    _upstream_calls.clear()
+    _upstream_calls.extend(now - i * 0.001 for i in range(used))
+    if penalty > 0:
+        _rate_limit_until = now + penalty
+    print(f"[server] rate-limit state: {used} used, {penalty}s penalty, budget_left={_budget_left(now)}")
+
 # ── Token cache ───────────────────────────────────────────────────────────────
 _token: str | None = None
 
@@ -144,7 +164,8 @@ async def get_exchange():
     if _merged_cache['data'] and now - _merged_cache['at'] < 120:
         return _merged_cache['data']
 
-    current_hour = now // 3600 * 3600
+    # API 只發布已結束的小時快照，進行中的當前小時尚無資料，固定從前一小時開始
+    latest_hour = (now // 3600 - 1) * 3600
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     snapshots: dict[int, dict] = {}
@@ -159,7 +180,7 @@ async def get_exchange():
         async with httpx.AsyncClient(timeout=30) as c:
             # 由新到舊：預算優先花在最新的小時
             for back in range(MERGE_HOURS):
-                hour = current_hour - 3600 * back
+                hour = latest_hour - 3600 * back
                 path = CACHE_DIR / f'{hour}.json'
 
                 if path.exists():
@@ -197,22 +218,22 @@ async def get_exchange():
                     r = await c.get(f'{TW_BASE}/currency-exchange/{hour}', headers=headers)
                 if r.status_code == 429:
                     retry_after = int(r.headers.get('retry-after', 600))
-                    # 限流是滾動一小時窗口：罰停歸零不代表額度恢復，且每 600s
-                    # 探路一次 = 6 次/小時，本身就超過 5/小時限額。退避至少
-                    # 900s（4 次/小時）才保證窗口能清空、必定收斂。
-                    backoff = max(retry_after, 900)
-                    _rate_limit_until = time.time() + backoff
+                    _sync_rate_limit_headers(r.headers, time.time())
+                    # 若 header 沒有 penalty 欄位，fallback 用 retry-after
+                    if _rate_limit_until <= time.time():
+                        _rate_limit_until = time.time() + retry_after
                     _slow_start = True
                     rate_limited = True
-                    print(f"[server] upstream 429 (retry-after {retry_after}s), backing off {backoff}s")
+                    print(f"[server] upstream 429 (retry-after {retry_after}s), backing off until {int(_rate_limit_until - time.time())}s from now")
                     continue
                 r.raise_for_status()
+                _sync_rate_limit_headers(r.headers, time.time())
                 _slow_start = False  # 成功 → 解除慢啟動
                 snap = r.json()
                 snapshots[hour] = snap
                 # 確定不會再變的小時才進磁碟（空快照也不可變、一樣快取）；
                 # 當前小時與剛過、可能尚未發布完整的小時放記憶體
-                if hour <= current_hour - 2 * 3600 or (hour < current_hour and snap.get('markets')):
+                if hour <= latest_hour - 3600 or (hour < latest_hour and snap.get('markets')):
                     path.write_text(json.dumps(snap, ensure_ascii=False), encoding='utf-8')
                     _hour_mem.pop(hour, None)
                 else:
