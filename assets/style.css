@@ -449,6 +449,25 @@ footer a:hover { text-decoration: underline; }
 .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-right: auto; }
 .btn-ghost:hover { color: var(--text); border-color: var(--text-dim); }
 
+/* ── Sparkline trend charts ── */
+.sparkline { display: block; width: 100%; overflow: visible; }
+
+.hero-chart {
+  flex-basis: 100%;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(200,181,96,0.2);
+}
+.hero-chart .sparkline { height: 52px; }
+.hero-chart-label { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+
+.card-chart {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.card-chart .sparkline { height: 26px; }
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   h1 { font-size: 17px; }

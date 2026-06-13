@@ -366,6 +366,42 @@ function ratioPrice(ratioObj, base, currency) {
   return b / t;
 }
 
+// ── Sparkline trend chart ─────────────────────────────────────────────────────
+// 從 market 的 history[] 提取逐小時最低報價，回傳 [{hour, p}] 舊→新排序。
+function priceHistory(pair, base, currency) {
+  if (!pair) return [];
+  const hist = pair.history?.length ? pair.history : [pair];
+  return hist
+    .map(h => {
+      const p = ratioPrice(h.lowest_ratio, base, currency);
+      return p != null ? { hour: h.hour ?? pair.snapshot_hour, p } : null;
+    })
+    .filter(Boolean);
+}
+
+// pts: [{hour, p}]。回傳 inline SVG 字串，< 2 個點時回傳空字串。
+// viewBox 固定 240×40，CSS 控制實際渲染尺寸；preserveAspectRatio=none 橫向拉伸。
+function sparklineSVG(pts, color = 'var(--gold)') {
+  if (pts.length < 2) return '';
+  const VW = 240, VH = 40, pad = 4;
+  const vals = pts.map(x => x.p);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const range = hi - lo || lo * 0.05 || 1;
+  const uw = VW - pad * 2, uh = VH - pad * 2;
+  const coords = pts.map((x, i) => {
+    const cx = pad + (i / (pts.length - 1)) * uw;
+    const cy = pad + (1 - (x.p - lo) / range) * uh;
+    return `${cx.toFixed(1)},${cy.toFixed(1)}`;
+  }).join(' ');
+  const lv = vals[vals.length - 1];
+  const lx = (pad + uw).toFixed(1);
+  const ly = (pad + (1 - (lv - lo) / range) * uh).toFixed(1);
+  return `<svg viewBox="0 0 ${VW} ${VH}" class="sparkline" preserveAspectRatio="none" aria-hidden="true">` +
+    `<polyline points="${coords}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` +
+    `<circle cx="${lx}" cy="${ly}" r="3" fill="${color}"/>` +
+    `</svg>`;
+}
+
 // 從該市場的逐小時歷史蒐集價位檔：每小時最多兩檔（最佳/最差端點），
 // 同一價位取最新一筆的庫存。API 不提供真掛單簿分檔，這是近期觀測到的價位。
 function collectLevels(pair, base, currency) {
@@ -445,6 +481,15 @@ function renderHero() {
   const ob = getOrderBook('divine');
   if (!ob.bid && !ob.ask) { heroEl.innerHTML = ''; return; }
 
+  const divPair = allMarkets.find(m => m.market_id === 'chaos|divine');
+  const chartPts = priceHistory(divPair, 'chaos', 'divine');
+  const chartHtml = chartPts.length >= 2
+    ? `<div class="hero-chart">
+        <div class="hero-chart-label">過去 ${chartPts.length} 小時趨勢 · 混沌石/神聖石</div>
+        ${sparklineSVG(chartPts)}
+      </div>`
+    : '';
+
   heroEl.innerHTML = `
     <div class="hero-card">
       <div class="hero-title">
@@ -459,6 +504,7 @@ function renderHero() {
         ${obRowHtml(ob.bid, '掛買', 'bid')}
       </div>
       <div class="hero-vol">成交量 ${ob.vol.toLocaleString()}</div>
+      ${chartHtml}
     </div>`;
 }
 
@@ -520,6 +566,12 @@ function renderCurrencyCard(currency, catEntry) {
   const src   = entry ? imgSrc(entry) : `public/res/img/${currency}.png`;
   const name  = currencyName(currency);
 
+  const askPair = allMarkets.find(m => m.market_id === `${currency}|chaos`);
+  const bidPair = allMarkets.find(m => m.market_id === `chaos|${currency}`);
+  const trendPair = (askPair?.history?.length ?? 0) >= (bidPair?.history?.length ?? 0) ? askPair : bidPair;
+  const trendPts = priceHistory(trendPair, 'chaos', currency);
+  const sparkline = trendPts.length >= 2 ? `<div class="card-chart">${sparklineSVG(trendPts, 'var(--accent-light)')}</div>` : '';
+
   return `<div class="currency-card" title="${escHtml(currency)}">
     <div class="card-header">
       <img class="card-icon" src="${escHtml(src)}" alt="${escHtml(name)}" onerror="this.style.display='none'">
@@ -531,6 +583,7 @@ function renderCurrencyCard(currency, catEntry) {
       ${obRowHtml(bid, '掛買', 'bid')}
     </div>
     <div class="card-vol">成交量 ${fmtK(obC.vol + obD.vol)}</div>
+    ${sparkline}
   </div>`;
 }
 

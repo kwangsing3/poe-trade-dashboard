@@ -150,6 +150,7 @@ poe-trade-dashboard/
 - 卡片掛賣/掛買兩側獨立取簿：混沌石簿優先，缺的那側用神聖石簿補（`renderCurrencyCard`）
 - 標價一律「1 個 : N 基準幣」（`ratioLabel`/`fmtAmount`），各基準行只在該配對市場真實有掛單時顯示
 - Demo 模式的假資料在 `data/mock-currency-exchange.json`（舊單 key ratio 格式，解析時缺側補 1）
+- **Sparkline 趨勢圖**：`priceHistory(pair, base, currency)` 從 `history[]` 提取逐小時最低報價；`sparklineSVG(pts, color)` 渲染 inline SVG 折線（< 2 個點回傳空字串）。Hero card 顯示混沌↔神聖石過去 N 小時走勢（`.hero-chart`），各通貨卡片底部附小型趨勢圖（`.card-chart`）
 
 ---
 
